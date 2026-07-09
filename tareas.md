@@ -17,9 +17,9 @@ Documento consolidado de tareas basado en:
 
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
-| Fase 1 — Backend FastAPI + Supabase | 21 | 12 | 0 | 9 |
+| Fase 1 — Backend FastAPI + Supabase | 21 | 14 | 0 | 7 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **12** | **0** | **17** |
+| **Total** | **29** | **14** | **0** | **15** |
 
 ---
 
@@ -188,33 +188,33 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 13 — Crear motor conversacional *(Tarea 12 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** implementar la máquina de estados principal del bot.
 **Archivos:** `app/services/conversation_service.py`
 
-- [ ] Crear o recuperar usuario
-- [ ] Crear o recuperar conversación activa
-- [ ] Guardar mensaje entrante
-- [ ] Leer estado actual
-- [ ] Procesar respuesta según estado (START, MENU, ASK_NAME, ASK_AMOUNT, ASK_TERM, ASK_INCOME, CONFIRM_DATA, EVALUATE_REQUEST, SHOW_RESULT, HANDOFF_REQUESTED, FINISHED)
-- [ ] Validar datos
-- [ ] Actualizar solicitud de crédito
-- [ ] Cambiar estado
-- [ ] Guardar respuesta saliente
-- [ ] Devolver mensaje final al controlador
+- [x] Crear o recuperar usuario
+- [x] Crear o recuperar conversación activa
+- [x] Guardar mensaje entrante
+- [x] Leer estado actual
+- [x] Procesar respuesta según estado (START, MENU, ASK_NAME, ASK_AMOUNT, ASK_TERM, ASK_INCOME, CONFIRM_DATA, EVALUATE_REQUEST, SHOW_RESULT, HANDOFF_REQUESTED, FINISHED)
+- [x] Validar datos
+- [x] Actualizar solicitud de crédito
+- [x] Cambiar estado
+- [x] Guardar respuesta saliente
+- [x] Devolver mensaje final al controlador
 
 ---
 
 ### Tarea 14 — Crear endpoint de simulación local *(Tarea 13 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** probar el bot sin depender de WhatsApp.
 **Archivos:** `app/api/routes_simulator.py`
 
-- [ ] Crear endpoint `POST /simulate/message`
-- [ ] Recibir body con `phone` y `message`
-- [ ] Devolver respuesta del motor conversacional
-- [ ] Probar conversación completa con Postman, Thunder Client o Swagger
+- [x] Crear endpoint `POST /simulate/message`
+- [x] Recibir body con `phone` y `message`
+- [x] Devolver respuesta del motor conversacional
+- [x] Probar conversación completa con Postman, Thunder Client o Swagger
 
 ---
 
