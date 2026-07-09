@@ -1,22 +1,27 @@
+"""Servicio de integración con la API de Twilio para WhatsApp."""
 import httpx
 
 from app.core.config import settings
 
 
 class WhatsAppServiceError(Exception):
+    """Error personalizado para fallos en la comunicación con Twilio."""
     pass
 
 
 def format_twilio_whatsapp_number(phone: str) -> str:
+    """Formatea un número al formato 'whatsapp:+XXXXXXXX' requerido por Twilio."""
     cleaned = phone.replace("whatsapp:", "").replace("+", "").strip()
     return f"whatsapp:+{cleaned}"
 
 
 def normalize_twilio_phone(from_field: str) -> str:
+    """Limpia el campo 'From' de Twilio y retorna solo el número sin prefijos."""
     return from_field.replace("whatsapp:", "").replace("+", "").strip()
 
 
 def _get_twilio_messages_url() -> str:
+    """Construye la URL de la API de Twilio para enviar mensajes."""
     if not settings.twilio_account_sid:
         raise WhatsAppServiceError("TWILIO_ACCOUNT_SID no está configurado.")
     return (
@@ -26,6 +31,7 @@ def _get_twilio_messages_url() -> str:
 
 
 def send_text_message(to_phone: str, message: str) -> dict:
+    """Envía un mensaje de texto por WhatsApp a través de la API de Twilio."""
     if not settings.twilio_auth_token:
         raise WhatsAppServiceError("TWILIO_AUTH_TOKEN no está configurado.")
     if not settings.twilio_whatsapp_from:

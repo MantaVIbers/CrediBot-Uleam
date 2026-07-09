@@ -25,3 +25,18 @@ services:
         value: "true"
       - key: DEFAULT_COUNTRY_CODE
         value: "593"
+
+  - type: web
+    name: creditbot-dashboard
+    runtime: python
+    rootDir: creditbot
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run dashboard/app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADMIN_DASHBOARD_PASSWORD
+        sync: false

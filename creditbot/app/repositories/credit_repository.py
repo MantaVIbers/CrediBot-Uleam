@@ -1,3 +1,4 @@
+"""Operaciones de base de datos para la tabla credit_requests."""
 from datetime import datetime, timezone
 from typing import Any
 
@@ -5,6 +6,7 @@ from app.repositories.supabase_client import get_supabase_client
 
 
 def create_draft_request(user_id: str, conversation_id: str) -> dict[str, Any]:
+    """Crea una solicitud de crédito en estado 'draft'."""
     response = (
         get_supabase_client()
         .table("credit_requests")
@@ -21,6 +23,7 @@ def create_draft_request(user_id: str, conversation_id: str) -> dict[str, Any]:
 
 
 def get_draft_request(conversation_id: str) -> dict[str, Any] | None:
+    """Retorna la solicitud en estado draft asociada a una conversación."""
     response = (
         get_supabase_client()
         .table("credit_requests")
@@ -37,6 +40,7 @@ def get_draft_request(conversation_id: str) -> dict[str, Any] | None:
 
 
 def update_amount(request_id: str, amount: float) -> dict[str, Any]:
+    """Actualiza el monto solicitado en una solicitud."""
     response = (
         get_supabase_client()
         .table("credit_requests")
@@ -53,6 +57,7 @@ def update_amount(request_id: str, amount: float) -> dict[str, Any]:
 
 
 def update_term(request_id: str, term_months: int) -> dict[str, Any]:
+    """Actualiza el plazo en meses de una solicitud."""
     response = (
         get_supabase_client()
         .table("credit_requests")
@@ -69,6 +74,7 @@ def update_term(request_id: str, term_months: int) -> dict[str, Any]:
 
 
 def update_income(request_id: str, monthly_income: float) -> dict[str, Any]:
+    """Actualiza el ingreso mensual registrado en una solicitud."""
     response = (
         get_supabase_client()
         .table("credit_requests")
@@ -90,6 +96,7 @@ def save_result(
     payment_capacity: float,
     result: str,
 ) -> dict[str, Any]:
+    """Guarda el resultado de la evaluación y marca la solicitud como completada."""
     response = (
         get_supabase_client()
         .table("credit_requests")

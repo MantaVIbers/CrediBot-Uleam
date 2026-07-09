@@ -1,3 +1,4 @@
+"""Operaciones de base de datos para la tabla conversations."""
 from datetime import datetime, timezone
 from typing import Any
 
@@ -6,6 +7,7 @@ from app.repositories.supabase_client import get_supabase_client
 
 
 def get_active_conversation(user_id: str) -> dict[str, Any] | None:
+    """Retorna la conversación activa más reciente de un usuario, o None."""
     response = (
         get_supabase_client()
         .table("conversations")
@@ -22,6 +24,7 @@ def get_active_conversation(user_id: str) -> dict[str, Any] | None:
 
 
 def create_conversation(user_id: str) -> dict[str, Any]:
+    """Crea una nueva conversación en estado START para el usuario."""
     response = (
         get_supabase_client()
         .table("conversations")
@@ -32,6 +35,7 @@ def create_conversation(user_id: str) -> dict[str, Any]:
 
 
 def get_or_create_active_conversation(user_id: str) -> dict[str, Any]:
+    """Recupera la conversación activa o crea una nueva si no existe."""
     conversation = get_active_conversation(user_id)
     if conversation:
         return conversation
@@ -39,6 +43,7 @@ def get_or_create_active_conversation(user_id: str) -> dict[str, Any]:
 
 
 def update_state(conversation_id: str, new_state: str) -> dict[str, Any]:
+    """Actualiza el estado actual de una conversación."""
     response = (
         get_supabase_client()
         .table("conversations")
@@ -55,6 +60,7 @@ def update_state(conversation_id: str, new_state: str) -> dict[str, Any]:
 
 
 def update_last_message(conversation_id: str, message: str) -> dict[str, Any]:
+    """Guarda el último mensaje enviado en la conversación."""
     response = (
         get_supabase_client()
         .table("conversations")
@@ -71,6 +77,7 @@ def update_last_message(conversation_id: str, message: str) -> dict[str, Any]:
 
 
 def finish_conversation(conversation_id: str) -> dict[str, Any]:
+    """Marca la conversación como inactiva (finalizada)."""
     response = (
         get_supabase_client()
         .table("conversations")

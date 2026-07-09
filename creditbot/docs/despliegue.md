@@ -1,21 +1,29 @@
 # Despliegue de CrediBot
 
-## Render (recomendado para MVP)
+CrediBot tiene **dos servicios independientes**:
 
-El archivo `render.yaml` incluye una configuración base.
+| Servicio | Qué es | Puerto / URL |
+|---|---|---|
+| **Backend FastAPI** | Bot de WhatsApp (webhook Twilio) | `https://creditbot-uleam.onrender.com` |
+| **Panel Streamlit** | Dashboard administrativo | `https://creditbot-dashboard.onrender.com` |
+
+El archivo `render.yaml` define ambos servicios.
+
+## Backend en Render (bot WhatsApp)
 
 ### Pasos
 
 1. Sube el repositorio a GitHub
 2. Crea un **Web Service** en [Render](https://render.com)
 3. Conecta el repositorio `CrediBot-Uleam`
-4. Usa la rama `develop` o `main`
+4. Usa la rama `main`
 5. Configura:
    - **Root Directory:** `creditbot`
    - **Build Command:** `pip install -r requirements.txt`
    - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Health Check Path:** `/health`
 
-### Variables de entorno en Render
+### Variables de entorno del backend
 
 | Variable | Valor |
 |---|---|
@@ -30,11 +38,35 @@ El archivo `render.yaml` incluye una configuración base.
 
 ### Webhook en Twilio
 
-Configura:
-
 ```text
 https://tu-servicio.onrender.com/webhook/whatsapp
 ```
+
+## Panel Streamlit en Render
+
+### Pasos
+
+1. En Render → **New +** → **Web Service**
+2. Mismo repositorio y rama `main`
+3. Configura:
+
+| Campo | Valor |
+|---|---|
+| **Name** | `creditbot-dashboard` |
+| **Root Directory** | `creditbot` |
+| **Build Command** | `pip install -r requirements.txt` |
+| **Start Command** | `streamlit run dashboard/app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false` |
+| **Health Check Path** | `/_stcore/health` |
+
+### Variables de entorno del panel
+
+| Variable | Valor |
+|---|---|
+| `SUPABASE_URL` | Misma URL del backend |
+| `SUPABASE_SERVICE_ROLE_KEY` | Misma Service Role Key |
+| `ADMIN_DASHBOARD_PASSWORD` | Contraseña del panel admin |
+
+Guía detallada del panel: [`docs/streamlit_dashboard.md`](streamlit_dashboard.md)
 
 ## Railway
 

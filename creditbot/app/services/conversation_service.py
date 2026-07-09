@@ -1,3 +1,4 @@
+"""Lógica principal del flujo conversacional del bot."""
 from typing import Any
 
 from app.core.constants import (
@@ -17,25 +18,32 @@ from app.core.constants import (
 from app.repositories import conversation_repository, credit_repository, message_repository, user_repository
 from app.services import credit_service, handoff_service, message_service, validation_service
 
+# Palabras clave que el usuario puede escribir para solicitar un asesor humano
 HANDOFF_KEYWORDS = {"asesor", "humano", "persona", "agente"}
+# Cantidad máxima de fallos de validación antes de derivar a asesor
 MAX_VALIDATION_FAILURES = 3
 
+# Contador de fallos de validación por conversación (en memoria)
 _validation_failures: dict[str, int] = {}
 
 
 def _parse_amount(value: str) -> float:
+    """Convierte el texto del monto a float, reemplazando coma por punto."""
     return float(value.replace(",", ".").strip())
 
 
 def _parse_term(value: str) -> int:
+    """Convierte el texto del plazo a entero."""
     return int(value.strip())
 
 
 def _parse_income(value: str) -> float:
+    """Convierte el texto del ingreso a float."""
     return float(value.replace(",", ".").strip())
 
 
 def _build_summary_data(user: dict[str, Any], request: dict[str, Any]) -> dict[str, Any]:
+    """Construye un dict con los datos resumidos para confirmación del usuario."""
     return {
         "name": user.get("full_name") or "Cliente",
         "amount": float(request["requested_amount"]),
@@ -45,6 +53,7 @@ def _build_summary_data(user: dict[str, Any], request: dict[str, Any]) -> dict[s
 
 
 def _build_result_data(request: dict[str, Any], evaluation: dict[str, Any]) -> dict[str, Any]:
+    """Construye un dict con los datos del resultado de la evaluación."""
     return {
         "estimated_payment": float(evaluation["estimated_payment"]),
         "payment_capacity": float(evaluation["payment_capacity"]),
@@ -53,10 +62,12 @@ def _build_result_data(request: dict[str, Any], evaluation: dict[str, Any]) -> d
 
 
 def _reset_validation_failures(conversation_id: str) -> None:
+    """Reinicia el contador de fallos de validación para una conversación."""
     _validation_failures.pop(conversation_id, None)
 
 
 def _track_validation_failure(conversation_id: str) -> bool:
+    """Incrementa el contador de fallos y retorna True si se superó el límite."""
     count = _validation_failures.get(conversation_id, 0) + 1
     _validation_failures[conversation_id] = count
     return count >= MAX_VALIDATION_FAILURES
@@ -69,6 +80,7 @@ def _request_handoff(
     reason: str,
     credit_request_id: str | None = None,
 ) -> str:
+    """Deriva la conversación a un asesor humano y finaliza la conversación activa."""
     handoff_service.register_handoff(
         user_id=user_id,
         conversation_id=conversation_id,
@@ -88,6 +100,7 @@ def _handle_validation_failure(
     user_id: str,
     response: str,
 ) -> str | None:
+    """Maneja un fallo de validación; si se supera el límite, deriva a asesor."""
     if _track_validation_failure(conversation_id):
         return _request_handoff(
             conversation_id,

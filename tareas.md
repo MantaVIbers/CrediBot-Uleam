@@ -5,7 +5,7 @@ Documento consolidado de tareas basado en:
 - `contexto aplicacion/creditbot_desarrollo_tareas_fastapi_supabase.md` (backend FastAPI + Supabase)
 - `contexto aplicacion/creditbot_streamlit_panel_desarrollo.md` (panel administrativo Streamlit)
 
-**Última actualización:** julio 2026 — sincronizado con rama `develop` y despliegue en Render verificado.
+**Última actualización:** julio 2026 — `main` y `develop` unificados con backend, panel Streamlit y despliegue en Render.
 
 ## Leyenda de estados
 
@@ -22,13 +22,6 @@ Documento consolidado de tareas basado en:
 | Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 8 | 0 | 0 |
 | **Total** | **29** | **29** | **0** | **0** |
-
-### Estado por rama
-
-| Rama | Contenido |
-|---|---|
-| `main` | Backend completo, despliegue Render, integración Twilio en producción, fix de firma webhook |
-| `develop` | Todo lo anterior + panel Streamlit (`creditbot/dashboard/`) y documentación del panel |
 
 ---
 
@@ -331,8 +324,6 @@ Documento consolidado de tareas basado en:
 
 # Fase 2 — Panel administrativo Streamlit
 
-> Implementado en rama `develop`. Requiere `git checkout develop` para acceder al código del panel.
-
 ### Tarea 22 — Crear módulo del dashboard *(Tarea 01 del doc. Streamlit)*
 
 **Estado:** Hecho
@@ -467,14 +458,13 @@ El MVP se considera completo cuando:
 - [x] El webhook de WhatsApp está implementado y funcionando en producción (Render + Twilio)
 - [x] Existe documentación para ejecutar y probar
 - [x] El proyecto está organizado en Git con ramas y commits claros
-- [x] El panel Streamlit muestra métricas, solicitudes, casos derivados y usuarios *(rama `develop`)*
-- [x] El panel Streamlit está protegido con contraseña *(rama `develop`)*
+- [x] El panel Streamlit muestra métricas, solicitudes, casos derivados y usuarios
+- [x] El panel Streamlit está protegido con contraseña
 
 ---
 
 # Próximos pasos sugeridos
 
-1. **Fusionar `develop` en `main`** para unificar backend + panel Streamlit en una sola rama
-2. **Levantar el panel Streamlit** localmente y verificar datos reales de Supabase
+1. **Desplegar el panel Streamlit** en Render como servicio independiente
+2. **Levantar el panel localmente** y verificar datos reales de Supabase
 3. **Completar una conversación de prueba** de punta a punta por WhatsApp (precalificación completa)
-4. **Opcional:** desplegar el panel Streamlit (Render, Streamlit Cloud u otro servicio)

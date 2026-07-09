@@ -1,9 +1,11 @@
+"""Operaciones de base de datos para la tabla users."""
 from typing import Any
 
 from app.repositories.supabase_client import get_supabase_client
 
 
 def get_user_by_phone(phone: str) -> dict[str, Any] | None:
+    """Busca un usuario por su número de teléfono."""
     response = (
         get_supabase_client()
         .table("users")
@@ -18,6 +20,7 @@ def get_user_by_phone(phone: str) -> dict[str, Any] | None:
 
 
 def create_user(phone: str, full_name: str | None = None) -> dict[str, Any]:
+    """Crea un nuevo usuario con el teléfono dado."""
     payload: dict[str, Any] = {"phone": phone}
     if full_name:
         payload["full_name"] = full_name
@@ -27,6 +30,7 @@ def create_user(phone: str, full_name: str | None = None) -> dict[str, Any]:
 
 
 def get_or_create_user(phone: str) -> dict[str, Any]:
+    """Retorna el usuario si existe, o lo crea si no."""
     user = get_user_by_phone(phone)
     if user:
         return user
@@ -34,6 +38,7 @@ def get_or_create_user(phone: str) -> dict[str, Any]:
 
 
 def update_user_name(user_id: str, full_name: str) -> dict[str, Any]:
+    """Actualiza el nombre completo de un usuario."""
     response = (
         get_supabase_client()
         .table("users")

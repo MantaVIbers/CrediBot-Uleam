@@ -1,3 +1,4 @@
+"""Pruebas del flujo conversacional completo del bot."""
 from unittest.mock import patch
 
 from app.core.constants import (
@@ -12,16 +13,19 @@ from app.core.constants import (
 )
 from app.services.conversation_service import process_message
 
+# IDs ficticios para las pruebas
 USER_ID = "user-1"
 CONVERSATION_ID = "conv-1"
 REQUEST_ID = "req-1"
 
 
 def _base_user():
+    """Retorna un usuario base de prueba."""
     return {"id": USER_ID, "phone": "593999999999", "full_name": None}
 
 
 def _base_conversation(state: str = START):
+    """Retorna una conversación base de prueba en un estado dado."""
     return {
         "id": CONVERSATION_ID,
         "user_id": USER_ID,
@@ -31,6 +35,7 @@ def _base_conversation(state: str = START):
 
 
 def _draft_request(**overrides):
+    """Retorna una solicitud draft base de prueba con valores opcionales."""
     data = {
         "id": REQUEST_ID,
         "user_id": USER_ID,
@@ -62,6 +67,7 @@ def test_conversation_flow_basic(
     mock_save_inbound,
     mock_save_outbound,
 ):
+    """Prueba el flujo completo desde START hasta SHOW_RESULT con datos válidos."""
     user = _base_user()
     mock_get_user.return_value = user
 

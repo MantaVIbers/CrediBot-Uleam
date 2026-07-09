@@ -62,6 +62,7 @@ Edita `creditbot/.env`:
 | `APP_PUBLIC_URL` | URL pública del backend en producción |
 | `TWILIO_VALIDATE_SIGNATURE` | `true` en producción, `false` en local |
 | `DEFAULT_COUNTRY_CODE` | Código de país por defecto, ej. `593` |
+| `ADMIN_DASHBOARD_PASSWORD` | Contraseña del panel administrativo Streamlit |
 
 ## Configurar Supabase
 
@@ -79,6 +80,26 @@ uvicorn app.main:app --reload
 Servidor disponible en `http://localhost:8000`.
 
 Documentación interactiva: `http://localhost:8000/docs`
+
+## Panel administrativo Streamlit
+
+El proyecto incluye un panel interno en Streamlit para revisar metricas, solicitudes, casos derivados y usuarios.
+
+Configura en `creditbot/.env`:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+ADMIN_DASHBOARD_PASSWORD=tu_clave_admin
+```
+
+Ejecuta el panel desde `creditbot`:
+
+```bash
+streamlit run dashboard/app.py
+```
+
+Guia detallada: [`docs/streamlit_dashboard.md`](docs/streamlit_dashboard.md)
 
 ## Probar sin WhatsApp
 
@@ -133,3 +154,4 @@ Guía: [`docs/despliegue.md`](docs/despliegue.md)
 - [`docs/endpoints.md`](docs/endpoints.md)
 - [`docs/flujo_conversacional.md`](docs/flujo_conversacional.md)
 - [`docs/twilio_setup.md`](docs/twilio_setup.md)
+- [`docs/streamlit_dashboard.md`](docs/streamlit_dashboard.md)
