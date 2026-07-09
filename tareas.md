@@ -17,9 +17,9 @@ Documento consolidado de tareas basado en:
 
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
-| Fase 1 — Backend FastAPI + Supabase | 21 | 18 | 0 | 3 |
+| Fase 1 — Backend FastAPI + Supabase | 21 | 19 | 0 | 2 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **18** | **0** | **11** |
+| **Total** | **29** | **19** | **0** | **10** |
 
 ---
 
@@ -273,18 +273,18 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 19 — Crear pruebas unitarias *(Tarea 18 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** validar los componentes principales del backend.
 **Archivos:** `app/tests/test_credit_service.py`, `app/tests/test_validation_service.py`, `app/tests/test_conversation_flow.py`
 
-- [ ] Validar monto correcto
-- [ ] Rechazar monto inválido
-- [ ] Validar plazo correcto
-- [ ] Rechazar plazo inválido
-- [ ] Calcular resultado `preaprobado`
-- [ ] Calcular resultado `observado`
-- [ ] Calcular resultado `no_cumple`
-- [ ] Ejecutar flujo conversacional básico
+- [x] Validar monto correcto
+- [x] Rechazar monto inválido
+- [x] Validar plazo correcto
+- [x] Rechazar plazo inválido
+- [x] Calcular resultado `preaprobado`
+- [x] Calcular resultado `observado`
+- [x] Calcular resultado `no_cumple`
+- [x] Ejecutar flujo conversacional básico
 
 ---
 
