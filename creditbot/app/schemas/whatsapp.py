@@ -1,3 +1,4 @@
+"""Función para extraer y normalizar los datos de un mensaje entrante de Twilio."""
 from typing import Any
 
 from app.services.whatsapp_service import normalize_twilio_phone
@@ -8,6 +9,7 @@ def extract_twilio_message(
     body: str,
     message_sid: str | None = None,
 ) -> dict[str, Any] | None:
+    """Extrae teléfono, mensaje y payload crudo desde los parámetros de Twilio."""
     phone = normalize_twilio_phone(from_phone)
     message = body.strip()
 

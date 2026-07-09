@@ -1,3 +1,4 @@
+"""Página del dashboard para listar y buscar usuarios."""
 import pandas as pd
 import streamlit as st
 

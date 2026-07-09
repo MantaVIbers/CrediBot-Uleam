@@ -1,3 +1,4 @@
+"""Componente de autenticación para el dashboard de Streamlit."""
 import os
 from pathlib import Path
 
@@ -10,15 +11,18 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 
 def _get_admin_password() -> str:
+    """Lee la contraseña del dashboard desde la variable de entorno."""
     return os.getenv("ADMIN_DASHBOARD_PASSWORD", "").strip()
 
 
 def _logout() -> None:
+    """Cierra la sesión del dashboard."""
     st.session_state["dashboard_authenticated"] = False
     st.rerun()
 
 
 def require_auth() -> None:
+    """Verifica que el usuario esté autenticado; si no, muestra el formulario de login."""
     if "dashboard_authenticated" not in st.session_state:
         st.session_state["dashboard_authenticated"] = False
 

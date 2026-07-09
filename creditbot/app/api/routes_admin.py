@@ -1,3 +1,4 @@
+"""Rutas administrativas para consultar datos del sistema."""
 from fastapi import APIRouter, HTTPException
 
 from app.repositories import conversation_repository, message_repository, user_repository
@@ -9,6 +10,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/requests")
 def list_credit_requests():
+    """Retorna todas las solicitudes de crédito."""
     response = (
         get_supabase_client()
         .table("credit_requests")
@@ -21,11 +23,13 @@ def list_credit_requests():
 
 @router.get("/handoff")
 def list_handoff_cases():
+    """Retorna los casos de derivación pendientes."""
     return {"items": get_pending_handoff_cases()}
 
 
 @router.get("/conversations/{phone}")
 def get_conversation_by_phone(phone: str):
+    """Retorna usuario, conversación y mensajes dado un número de teléfono."""
     user = user_repository.get_user_by_phone(phone)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")

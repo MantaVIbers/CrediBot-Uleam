@@ -1,3 +1,4 @@
+"""Página principal del panel de administración de CrediBot."""
 import pandas as pd
 import streamlit as st
 
@@ -49,6 +50,7 @@ else:
     observadas = int((df_solicitudes["result"] == "observado").sum())
     no_cumplen = int((df_solicitudes["result"] == "no_cumple").sum())
 
+# Métricas principales
 col1, col2, col3 = st.columns(3)
 col1.metric("Usuarios registrados", total_usuarios)
 col2.metric("Solicitudes totales", total_solicitudes)

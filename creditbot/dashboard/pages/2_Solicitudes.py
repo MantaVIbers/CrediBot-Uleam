@@ -1,3 +1,4 @@
+"""Página del dashboard que lista y filtra solicitudes de crédito."""
 import pandas as pd
 import streamlit as st
 
@@ -36,6 +37,7 @@ if df.empty:
     st.info("No existen solicitudes registradas.")
     st.stop()
 
+# Identifica qué solicitudes tienen un caso derivado asociado
 derived_request_ids: set[str] = set()
 if not df_casos.empty and "credit_request_id" in df_casos.columns:
     derived_request_ids = set(df_casos["credit_request_id"].dropna().astype(str))
@@ -45,6 +47,7 @@ if "id" in df.columns:
 else:
     df["derivado_asesor"] = False
 
+# Filtros
 col1, col2 = st.columns(2)
 
 resultado = col1.selectbox(
@@ -89,6 +92,7 @@ display_df = filtered_df[visible_columns + extra_columns]
 
 st.dataframe(display_df, use_container_width=True, hide_index=True)
 
+# Botón para descargar CSV
 csv = display_df.to_csv(index=False).encode("utf-8")
 st.download_button(
     label="Descargar CSV",

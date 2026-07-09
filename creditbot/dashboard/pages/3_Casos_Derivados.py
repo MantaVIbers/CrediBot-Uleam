@@ -1,3 +1,4 @@
+"""Página del dashboard para visualizar casos derivados a asesor humano."""
 import pandas as pd
 import streamlit as st
 
@@ -11,18 +12,21 @@ from services.supabase_dashboard import (
 
 
 def _safe_value(value: object, default: str = "No registrado") -> object:
+    """Retorna el valor o un texto por defecto si es nulo."""
     if value is None or pd.isna(value):
         return default
     return value
 
 
 def _money_text(value: object) -> str:
+    """Formatea un valor numérico como texto monetario."""
     if value is None or pd.isna(value):
         return "No registrado"
     return f"${float(value):.2f}"
 
 
 def _term_text(value: object) -> str:
+    """Formatea un número de meses como texto."""
     if value is None or pd.isna(value):
         return "No registrado"
     return f"{int(value)} meses"
@@ -59,6 +63,7 @@ if df_casos.empty:
 
 df = df_casos.copy()
 
+# Combina con datos de solicitudes y usuarios
 if not df_solicitudes.empty and "credit_request_id" in df.columns:
     df = df.merge(
         df_solicitudes.add_prefix("solicitud_"),

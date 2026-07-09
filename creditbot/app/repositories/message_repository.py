@@ -1,3 +1,4 @@
+"""Operaciones de base de datos para la tabla messages."""
 from typing import Any
 
 from app.repositories.supabase_client import get_supabase_client
@@ -9,6 +10,7 @@ def save_inbound_message(
     content: str,
     raw_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Guarda un mensaje entrante del usuario."""
     payload: dict[str, Any] = {
         "conversation_id": conversation_id,
         "user_id": user_id,
@@ -28,6 +30,7 @@ def save_outbound_message(
     content: str,
     raw_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Guarda un mensaje saliente enviado por el bot."""
     payload: dict[str, Any] = {
         "conversation_id": conversation_id,
         "user_id": user_id,
@@ -42,6 +45,7 @@ def save_outbound_message(
 
 
 def get_messages_by_conversation(conversation_id: str) -> list[dict[str, Any]]:
+    """Retorna todos los mensajes de una conversación ordenados por fecha."""
     response = (
         get_supabase_client()
         .table("messages")

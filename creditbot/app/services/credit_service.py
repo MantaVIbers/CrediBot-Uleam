@@ -1,3 +1,4 @@
+"""Lógica de evaluación crediticia (precalificación)."""
 from app.core.constants import (
     CREDIT_RESULT_NOT_QUALIFIED,
     CREDIT_RESULT_OBSERVED,
@@ -6,16 +7,19 @@ from app.core.constants import (
 
 
 def calculate_estimated_payment(amount: float, term_months: int) -> float:
+    """Calcula la cuota estimada dividiendo el monto entre el plazo."""
     return round(amount / term_months, 2)
 
 
 def calculate_payment_capacity(monthly_income: float) -> float:
+    """Calcula el 30% del ingreso mensual como capacidad de pago."""
     return round(monthly_income * 0.30, 2)
 
 
 def evaluate_credit_request(
     amount: float, term_months: int, monthly_income: float
 ) -> dict[str, float | str]:
+    """Evalúa la solicitud y retorna cuota estimada, capacidad y resultado."""
     estimated_payment = calculate_estimated_payment(amount, term_months)
     payment_capacity = calculate_payment_capacity(monthly_income)
 

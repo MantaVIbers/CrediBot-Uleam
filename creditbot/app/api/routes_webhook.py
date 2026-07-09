@@ -1,3 +1,4 @@
+"""Rutas del webhook de WhatsApp (Twilio)."""
 import logging
 
 from fastapi import APIRouter, Form, HTTPException, Request, Response
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/webhook", tags=["whatsapp"])
 
 
 def _validate_twilio_signature(request: Request, form_data: dict[str, str]) -> None:
+    """Valida la firma X-Twilio-Signature si la configuración lo requiere."""
     if not settings.twilio_validate_signature:
         return
 
@@ -42,6 +44,7 @@ def _validate_twilio_signature(request: Request, form_data: dict[str, str]) -> N
 
 @router.get("/whatsapp")
 def whatsapp_webhook_status():
+    """Endpoint GET de verificación del webhook de Twilio."""
     return {
         "status": "ok",
         "provider": "twilio",
@@ -56,6 +59,7 @@ async def receive_whatsapp_webhook(
     Body: str = Form(default=""),
     MessageSid: str = Form(default=""),
 ):
+    """Recibe mensajes entrantes de Twilio, los procesa y responde."""
     form_data = {
         "From": From,
         "Body": Body,

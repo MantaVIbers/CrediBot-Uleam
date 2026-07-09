@@ -1,3 +1,4 @@
+"""Operaciones de base de datos para la tabla handoff_cases (derivación a asesor)."""
 from datetime import datetime, timezone
 from typing import Any
 
@@ -10,6 +11,7 @@ def create_handoff_case(
     reason: str,
     credit_request_id: str | None = None,
 ) -> dict[str, Any]:
+    """Crea un caso de derivación a asesor humano."""
     payload: dict[str, Any] = {
         "user_id": user_id,
         "conversation_id": conversation_id,
@@ -24,6 +26,7 @@ def create_handoff_case(
 
 
 def get_pending_handoff_cases() -> list[dict[str, Any]]:
+    """Retorna todos los casos de derivación pendientes."""
     response = (
         get_supabase_client()
         .table("handoff_cases")
@@ -36,6 +39,7 @@ def get_pending_handoff_cases() -> list[dict[str, Any]]:
 
 
 def close_handoff_case(case_id: str) -> dict[str, Any]:
+    """Cierra un caso de derivación cambiando su estado a 'closed'."""
     response = (
         get_supabase_client()
         .table("handoff_cases")
