@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from components.auth import require_auth
 from services.supabase_dashboard import DashboardConfigError, obtener_usuarios
 
 
@@ -9,6 +10,8 @@ st.set_page_config(
     page_icon="CB",
     layout="wide",
 )
+
+require_auth()
 
 st.title("Usuarios")
 
@@ -51,4 +54,3 @@ extra_columns = [column for column in filtered_df.columns if column not in visib
 display_df = filtered_df[visible_columns + extra_columns]
 
 st.dataframe(display_df, use_container_width=True, hide_index=True)
-

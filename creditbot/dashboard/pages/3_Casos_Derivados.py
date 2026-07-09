@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from components.auth import require_auth
 from services.supabase_dashboard import (
     DashboardConfigError,
     obtener_casos_derivados,
@@ -32,6 +33,8 @@ st.set_page_config(
     page_icon="CB",
     layout="wide",
 )
+
+require_auth()
 
 st.title("Casos Derivados")
 

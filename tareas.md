@@ -18,8 +18,8 @@ Documento consolidado de tareas basado en:
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
 | Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
-| Fase 2 — Panel administrativo Streamlit | 8 | 6 | 0 | 2 |
-| **Total** | **29** | **27** | **0** | **2** |
+| Fase 2 — Panel administrativo Streamlit | 8 | 7 | 0 | 1 |
+| **Total** | **29** | **28** | **0** | **1** |
 
 ---
 
@@ -410,14 +410,14 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 28 — Implementar seguridad básica del panel *(Tarea 07 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** proteger el acceso al dashboard administrativo con una contraseña básica para el MVP.
 
-- [ ] Crear variable `ADMIN_DASHBOARD_PASSWORD` en `.env`
-- [ ] Crear pantalla de login
-- [ ] Guardar autenticación en `st.session_state`
-- [ ] Evitar acceso al dashboard sin contraseña
-- [ ] Mostrar error si la contraseña es incorrecta
+- [x] Crear variable `ADMIN_DASHBOARD_PASSWORD` en `.env`
+- [x] Crear pantalla de login
+- [x] Guardar autenticación en `st.session_state`
+- [x] Evitar acceso al dashboard sin contraseña
+- [x] Mostrar error si la contraseña es incorrecta
 
 ---
 
