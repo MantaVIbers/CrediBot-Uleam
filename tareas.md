@@ -18,8 +18,8 @@ Documento consolidado de tareas basado en:
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
 | Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
-| Fase 2 — Panel administrativo Streamlit | 8 | 4 | 0 | 4 |
-| **Total** | **29** | **25** | **0** | **4** |
+| Fase 2 — Panel administrativo Streamlit | 8 | 5 | 0 | 3 |
+| **Total** | **29** | **26** | **0** | **3** |
 
 ---
 
@@ -383,15 +383,15 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 26 — Crear pantalla de casos derivados *(Tarea 05 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear una página dedicada a los casos que necesitan atención humana.
 **Archivos:** `dashboard/pages/3_Casos_Derivados.py`
 
-- [ ] Crear archivo `pages/3_Casos_Derivados.py`
-- [ ] Consultar solicitudes derivadas a asesor
-- [ ] Mostrar tabla de casos derivados
-- [ ] Permitir seleccionar un caso
-- [ ] Mostrar detalle del caso seleccionado (cliente, teléfono, monto, plazo, ingreso, resultado)
+- [x] Crear archivo `pages/3_Casos_Derivados.py`
+- [x] Consultar solicitudes derivadas a asesor
+- [x] Mostrar tabla de casos derivados
+- [x] Permitir seleccionar un caso
+- [x] Mostrar detalle del caso seleccionado (cliente, teléfono, monto, plazo, ingreso, resultado)
 
 ---
 
