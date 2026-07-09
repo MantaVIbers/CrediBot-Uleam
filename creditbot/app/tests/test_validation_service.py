@@ -71,3 +71,19 @@ def test_validate_confirmation_correct():
     is_valid, error = validate_confirmation("1")
     assert is_valid is True
     assert error is None
+
+
+def test_validate_amount_with_thousands_separator():
+    """Monto con separador de miles (coma)."""
+    is_valid, error = validate_amount("1,000")
+    assert is_valid is True
+    assert error is None
+
+
+def test_parse_numeric_value_thousands():
+    """Verifica el parseo correcto de valores con separador de miles."""
+    from app.services.validation_service import parse_numeric_value
+
+    assert parse_numeric_value("1,000") == 1000.0
+    assert parse_numeric_value("1.500") == 1500.0
+    assert parse_numeric_value("500,50") == 500.5

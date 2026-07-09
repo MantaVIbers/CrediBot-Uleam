@@ -1,6 +1,22 @@
 """Funciones de validación de entrada del usuario."""
 
 
+def parse_numeric_value(value: str) -> float:
+    """Convierte texto numérico a float, soportando coma decimal y separador de miles."""
+    cleaned = value.strip().replace(" ", "")
+    if "," in cleaned:
+        parts = cleaned.split(",")
+        if len(parts) == 2 and len(parts[1]) in (1, 2):
+            cleaned = parts[0].replace(".", "") + "." + parts[1]
+        else:
+            cleaned = cleaned.replace(",", "")
+    elif "." in cleaned:
+        integer_part, fractional_part = cleaned.rsplit(".", 1)
+        if len(fractional_part) == 3 and integer_part.replace(".", "").isdigit():
+            cleaned = cleaned.replace(".", "")
+    return float(cleaned)
+
+
 def validate_name(value: str) -> tuple[bool, str | None]:
     """Valida que el nombre tenga al menos 2 palabras o 5 caracteres."""
     cleaned = value.strip()
@@ -12,7 +28,7 @@ def validate_name(value: str) -> tuple[bool, str | None]:
 def validate_amount(value: str) -> tuple[bool, str | None]:
     """Valida que el monto sea un número positivo."""
     try:
-        amount = float(value.replace(",", ".").strip())
+        amount = parse_numeric_value(value)
     except ValueError:
         return False, "El monto debe ser un número válido."
 
@@ -38,7 +54,7 @@ def validate_term(value: str) -> tuple[bool, str | None]:
 def validate_income(value: str) -> tuple[bool, str | None]:
     """Valida que el ingreso sea un número positivo."""
     try:
-        income = float(value.replace(",", ".").strip())
+        income = parse_numeric_value(value)
     except ValueError:
         return False, "El ingreso debe ser un número válido."
 

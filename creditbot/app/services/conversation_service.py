@@ -28,8 +28,8 @@ _validation_failures: dict[str, int] = {}
 
 
 def _parse_amount(value: str) -> float:
-    """Convierte el texto del monto a float, reemplazando coma por punto."""
-    return float(value.replace(",", ".").strip())
+    """Convierte el texto del monto a float."""
+    return validation_service.parse_numeric_value(value)
 
 
 def _parse_term(value: str) -> int:
@@ -39,7 +39,7 @@ def _parse_term(value: str) -> int:
 
 def _parse_income(value: str) -> float:
     """Convierte el texto del ingreso a float."""
-    return float(value.replace(",", ".").strip())
+    return validation_service.parse_numeric_value(value)
 
 
 def _build_summary_data(user: dict[str, Any], request: dict[str, Any]) -> dict[str, Any]:
