@@ -11,14 +11,15 @@ class Settings(BaseSettings):
     app_name: str = "CrediBot"
     app_env: str = "development"
     app_debug: bool = True
+    app_public_url: str = ""
 
     supabase_url: str = ""
     supabase_service_role_key: str = ""
 
-    whatsapp_verify_token: str = ""
-    whatsapp_access_token: str = ""
-    whatsapp_phone_number_id: str = ""
-    whatsapp_api_version: str = "v20.0"
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_whatsapp_from: str = ""
+    twilio_validate_signature: bool = False
 
     default_country_code: str = "593"
 

@@ -1,30 +1,28 @@
 from typing import Any
 
+from app.services.whatsapp_service import normalize_twilio_phone
 
-def extract_incoming_messages(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    messages: list[dict[str, Any]] = []
 
-    if payload.get("object") != "whatsapp_business_account":
-        return messages
+def extract_twilio_message(
+    from_phone: str,
+    body: str,
+    message_sid: str | None = None,
+) -> dict[str, Any] | None:
+    phone = normalize_twilio_phone(from_phone)
+    message = body.strip()
 
-    for entry in payload.get("entry", []):
-        for change in entry.get("changes", []):
-            value = change.get("value", {})
-            for message in value.get("messages", []):
-                if message.get("type") != "text":
-                    continue
+    if not phone or not message:
+        return None
 
-                text_body = message.get("text", {}).get("body")
-                phone = message.get("from")
-                if not phone or not text_body:
-                    continue
+    raw_payload: dict[str, Any] = {
+        "From": from_phone,
+        "Body": body,
+    }
+    if message_sid:
+        raw_payload["MessageSid"] = message_sid
 
-                messages.append(
-                    {
-                        "phone": phone,
-                        "message": text_body,
-                        "raw_payload": message,
-                    }
-                )
-
-    return messages
+    return {
+        "phone": phone,
+        "message": message,
+        "raw_payload": raw_payload,
+    }

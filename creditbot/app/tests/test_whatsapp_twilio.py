@@ -1,0 +1,23 @@
+from app.schemas.whatsapp import extract_twilio_message
+from app.services.whatsapp_service import format_twilio_whatsapp_number, normalize_twilio_phone
+
+
+def test_normalize_twilio_phone():
+    assert normalize_twilio_phone("whatsapp:+593999999999") == "593999999999"
+
+
+def test_format_twilio_whatsapp_number():
+    assert format_twilio_whatsapp_number("593999999999") == "whatsapp:+593999999999"
+
+
+def test_extract_twilio_message():
+    result = extract_twilio_message(
+        "whatsapp:+593999999999",
+        "Hola",
+        "SM123",
+    )
+
+    assert result is not None
+    assert result["phone"] == "593999999999"
+    assert result["message"] == "Hola"
+    assert result["raw_payload"]["MessageSid"] == "SM123"
