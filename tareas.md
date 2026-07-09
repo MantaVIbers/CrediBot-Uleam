@@ -18,8 +18,8 @@ Documento consolidado de tareas basado en:
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
 | Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
-| Fase 2 — Panel administrativo Streamlit | 8 | 1 | 0 | 7 |
-| **Total** | **29** | **22** | **0** | **7** |
+| Fase 2 — Panel administrativo Streamlit | 8 | 2 | 0 | 6 |
+| **Total** | **29** | **23** | **0** | **6** |
 
 ---
 
@@ -335,17 +335,17 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 23 — Configurar conexión de Streamlit con Supabase *(Tarea 02 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** conectar el panel administrativo con Supabase para consultar usuarios y solicitudes.
 **Archivos:** `dashboard/services/supabase_dashboard.py`
 
-- [ ] Instalar `supabase` y `python-dotenv`
-- [ ] Crear archivo `services/supabase_dashboard.py`
-- [ ] Cargar variables de entorno
-- [ ] Crear cliente de Supabase
-- [ ] Crear función para obtener usuarios
-- [ ] Crear función para obtener solicitudes
-- [ ] Probar consulta desde Streamlit
+- [x] Instalar `supabase` y `python-dotenv`
+- [x] Crear archivo `services/supabase_dashboard.py`
+- [x] Cargar variables de entorno
+- [x] Crear cliente de Supabase
+- [x] Crear función para obtener usuarios
+- [x] Crear función para obtener solicitudes
+- [x] Probar consulta desde Streamlit
 
 ---
 
