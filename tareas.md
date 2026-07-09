@@ -17,9 +17,9 @@ Documento consolidado de tareas basado en:
 
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
-| Fase 1 — Backend FastAPI + Supabase | 21 | 3 | 0 | 18 |
+| Fase 1 — Backend FastAPI + Supabase | 21 | 4 | 0 | 17 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **3** | **0** | **26** |
+| **Total** | **29** | **4** | **0** | **25** |
 
 ---
 
@@ -69,15 +69,15 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 4 — Crear esquema en Supabase *(Tarea 3 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** preparar la base de datos para usuarios, conversaciones, mensajes y solicitudes.
 **Archivos:** `supabase/schema.sql`
 
-- [ ] Crear proyecto en Supabase
-- [ ] Abrir SQL Editor
-- [ ] Ejecutar `schema.sql`
-- [ ] Verificar tablas creadas (`users`, `conversations`, `messages`, `credit_requests`, `handoff_cases`)
-- [ ] Copiar URL y Service Role Key al `.env` local
+- [x] Crear proyecto en Supabase
+- [x] Abrir SQL Editor
+- [x] Ejecutar `schema.sql`
+- [x] Verificar tablas creadas (`users`, `conversations`, `messages`, `credit_requests`, `handoff_cases`)
+- [x] Copiar URL y Service Role Key al `.env` local
 
 ---
 
