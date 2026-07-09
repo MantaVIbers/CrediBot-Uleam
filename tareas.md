@@ -18,8 +18,8 @@ Documento consolidado de tareas basado en:
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
 | Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
-| Fase 2 — Panel administrativo Streamlit | 8 | 2 | 0 | 6 |
-| **Total** | **29** | **23** | **0** | **6** |
+| Fase 2 — Panel administrativo Streamlit | 8 | 3 | 0 | 5 |
+| **Total** | **29** | **24** | **0** | **5** |
 
 ---
 
@@ -351,18 +351,18 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 24 — Crear pantalla de dashboard general *(Tarea 03 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear la pantalla principal con indicadores generales del sistema.
 **Archivos:** `dashboard/app.py`
 
-- [ ] Consultar usuarios y solicitudes
-- [ ] Convertir datos a DataFrame
-- [ ] Calcular total de usuarios
-- [ ] Calcular total de solicitudes
-- [ ] Calcular preaprobadas, observadas y no aprobadas
-- [ ] Calcular casos derivados
-- [ ] Mostrar métricas con `st.metric`
-- [ ] Mostrar tabla de solicitudes recientes
+- [x] Consultar usuarios y solicitudes
+- [x] Convertir datos a DataFrame
+- [x] Calcular total de usuarios
+- [x] Calcular total de solicitudes
+- [x] Calcular preaprobadas, observadas y no aprobadas
+- [x] Calcular casos derivados
+- [x] Mostrar métricas con `st.metric`
+- [x] Mostrar tabla de solicitudes recientes
 
 ---
 
