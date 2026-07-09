@@ -17,9 +17,9 @@ Documento consolidado de tareas basado en:
 
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
-| Fase 1 — Backend FastAPI + Supabase | 21 | 0 | 0 | 21 |
+| Fase 1 — Backend FastAPI + Supabase | 21 | 2 | 0 | 19 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **0** | **0** | **29** |
+| **Total** | **29** | **2** | **0** | **27** |
 
 ---
 
@@ -43,14 +43,14 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 2 — Configurar FastAPI *(Tarea 1 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** levantar un servidor básico con FastAPI.
 **Archivos:** `app/main.py`, `app/api/routes_health.py`
 
-- [ ] Crear instancia principal de FastAPI
-- [ ] Crear endpoint `/health`
-- [ ] Registrar rutas en `main.py`
-- [ ] Ejecutar servidor con Uvicorn (`uvicorn app.main:app --reload`)
+- [x] Crear instancia principal de FastAPI
+- [x] Crear endpoint `/health`
+- [x] Registrar rutas en `main.py`
+- [x] Ejecutar servidor con Uvicorn (`uvicorn app.main:app --reload`)
 
 ---
 
