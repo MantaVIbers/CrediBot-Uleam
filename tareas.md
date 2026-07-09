@@ -17,9 +17,9 @@ Documento consolidado de tareas basado en:
 
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
-| Fase 1 — Backend FastAPI + Supabase | 21 | 10 | 0 | 11 |
+| Fase 1 — Backend FastAPI + Supabase | 21 | 11 | 0 | 10 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **10** | **0** | **19** |
+| **Total** | **29** | **11** | **0** | **18** |
 
 ---
 
@@ -161,13 +161,13 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 11 — Crear servicio de reglas de negocio *(Tarea 10 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** calcular la precalificación del crédito.
 **Archivos:** `app/services/credit_service.py`
 
-- [ ] Calcular cuota estimada (`calculate_estimated_payment` = monto / plazo)
-- [ ] Calcular capacidad de pago (`calculate_payment_capacity` = ingreso * 0.30)
-- [ ] Evaluar solicitud y devolver `preaprobado`, `observado` o `no_cumple` (`evaluate_credit_request`)
+- [x] Calcular cuota estimada (`calculate_estimated_payment` = monto / plazo)
+- [x] Calcular capacidad de pago (`calculate_payment_capacity` = ingreso * 0.30)
+- [x] Evaluar solicitud y devolver `preaprobado`, `observado` o `no_cumple` (`evaluate_credit_request`)
 
 ---
 
