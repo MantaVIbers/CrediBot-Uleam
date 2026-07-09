@@ -18,8 +18,8 @@ Documento consolidado de tareas basado en:
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
 | Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
-| Fase 2 — Panel administrativo Streamlit | 8 | 5 | 0 | 3 |
-| **Total** | **29** | **26** | **0** | **3** |
+| Fase 2 — Panel administrativo Streamlit | 8 | 6 | 0 | 2 |
+| **Total** | **29** | **27** | **0** | **2** |
 
 ---
 
@@ -397,14 +397,14 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 27 — Crear pantalla de usuarios *(Tarea 06 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear una página para visualizar los usuarios que han interactuado con CrediBot.
 **Archivos:** `dashboard/pages/4_Usuarios.py`
 
-- [ ] Crear archivo `pages/4_Usuarios.py`
-- [ ] Consultar usuarios desde Supabase
-- [ ] Mostrar nombre, teléfono y fecha de registro
-- [ ] Agregar búsqueda por nombre o teléfono
+- [x] Crear archivo `pages/4_Usuarios.py`
+- [x] Consultar usuarios desde Supabase
+- [x] Mostrar nombre, teléfono y fecha de registro
+- [x] Agregar búsqueda por nombre o teléfono
 
 ---
 
