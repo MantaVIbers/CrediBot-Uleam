@@ -17,9 +17,9 @@ Documento consolidado de tareas basado en:
 
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
-| Fase 1 — Backend FastAPI + Supabase | 21 | 4 | 0 | 17 |
+| Fase 1 — Backend FastAPI + Supabase | 21 | 10 | 0 | 11 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **4** | **0** | **25** |
+| **Total** | **29** | **10** | **0** | **19** |
 
 ---
 
@@ -83,79 +83,79 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 5 — Crear cliente de Supabase *(Tarea 4 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** conectar FastAPI con Supabase.
 **Archivos:** `app/repositories/supabase_client.py`
 
-- [ ] Crear cliente usando `create_client`
-- [ ] Leer credenciales desde `config.py`
-- [ ] Probar conexión con una consulta simple
+- [x] Crear cliente usando `create_client`
+- [x] Leer credenciales desde `config.py`
+- [x] Probar conexión con una consulta simple
 
 ---
 
 ### Tarea 6 — Crear repositorio de usuarios *(Tarea 5 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** permitir crear o recuperar usuarios por número de WhatsApp.
 **Archivos:** `app/repositories/user_repository.py`
 
-- [ ] Buscar usuario por teléfono (`get_user_by_phone`)
-- [ ] Crear usuario si no existe (`create_user`, `get_or_create_user`)
-- [ ] Actualizar nombre cuando el bot lo solicite (`update_user_name`)
+- [x] Buscar usuario por teléfono (`get_user_by_phone`)
+- [x] Crear usuario si no existe (`create_user`, `get_or_create_user`)
+- [x] Actualizar nombre cuando el bot lo solicite (`update_user_name`)
 
 ---
 
 ### Tarea 7 — Crear repositorio de conversaciones *(Tarea 6 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** administrar el estado de conversación de cada usuario.
 **Archivos:** `app/repositories/conversation_repository.py`
 
-- [ ] Crear conversación activa para usuario nuevo (`create_conversation`, `get_or_create_active_conversation`)
-- [ ] Consultar estado actual (`get_active_conversation`)
-- [ ] Actualizar estado después de cada respuesta (`update_state`, `update_last_message`)
-- [ ] Finalizar conversación cuando termine el flujo (`finish_conversation`)
+- [x] Crear conversación activa para usuario nuevo (`create_conversation`, `get_or_create_active_conversation`)
+- [x] Consultar estado actual (`get_active_conversation`)
+- [x] Actualizar estado después de cada respuesta (`update_state`, `update_last_message`)
+- [x] Finalizar conversación cuando termine el flujo (`finish_conversation`)
 
 ---
 
 ### Tarea 8 — Crear repositorio de mensajes *(Tarea 7 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** registrar mensajes entrantes y salientes.
 **Archivos:** `app/repositories/message_repository.py`
 
-- [ ] Guardar mensaje recibido (`save_inbound_message`)
-- [ ] Guardar respuesta enviada por el bot (`save_outbound_message`)
-- [ ] Permitir consultar historial de conversación (`get_messages_by_conversation`)
+- [x] Guardar mensaje recibido (`save_inbound_message`)
+- [x] Guardar respuesta enviada por el bot (`save_outbound_message`)
+- [x] Permitir consultar historial de conversación (`get_messages_by_conversation`)
 
 ---
 
 ### Tarea 9 — Crear repositorio de solicitudes de crédito *(Tarea 8 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** almacenar la información recopilada durante el flujo de precalificación.
 **Archivos:** `app/repositories/credit_repository.py`
 
-- [ ] Crear solicitud en estado `draft` (`create_draft_request`, `get_draft_request`)
-- [ ] Actualizar monto (`update_amount`)
-- [ ] Actualizar plazo (`update_term`)
-- [ ] Actualizar ingreso mensual (`update_income`)
-- [ ] Guardar resultado de evaluación (`save_result`)
+- [x] Crear solicitud en estado `draft` (`create_draft_request`, `get_draft_request`)
+- [x] Actualizar monto (`update_amount`)
+- [x] Actualizar plazo (`update_term`)
+- [x] Actualizar ingreso mensual (`update_income`)
+- [x] Guardar resultado de evaluación (`save_result`)
 
 ---
 
 ### Tarea 10 — Crear servicio de validación *(Tarea 9 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** validar las respuestas del usuario antes de guardar datos.
 **Archivos:** `app/services/validation_service.py`
 
-- [ ] Validar nombre (mínimo 2 palabras o mínimo 5 caracteres)
-- [ ] Validar monto (numérico, mayor a 0)
-- [ ] Validar plazo (numérico, entre 3 y 36 meses)
-- [ ] Validar ingreso (numérico, mayor a 0)
-- [ ] Validar opción de menú (solo 1, 2 o 3)
-- [ ] Validar confirmación (solo 1 o 2)
+- [x] Validar nombre (mínimo 2 palabras o mínimo 5 caracteres)
+- [x] Validar monto (numérico, mayor a 0)
+- [x] Validar plazo (numérico, entre 3 y 36 meses)
+- [x] Validar ingreso (numérico, mayor a 0)
+- [x] Validar opción de menú (solo 1, 2 o 3)
+- [x] Validar confirmación (solo 1 o 2)
 
 ---
 
