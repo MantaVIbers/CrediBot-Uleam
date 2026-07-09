@@ -62,11 +62,12 @@ def obtener_solicitudes() -> list[dict[str, Any]]:
 
 
 def obtener_casos_derivados() -> list[dict[str, Any]]:
-    """Obtiene todos los casos derivados a asesor desde Supabase."""
+    """Obtiene los casos derivados pendientes de atención desde Supabase."""
     response = (
         get_supabase_client()
         .table("handoff_cases")
         .select("*")
+        .eq("status", "pending")
         .order("created_at", desc=True)
         .execute()
     )
