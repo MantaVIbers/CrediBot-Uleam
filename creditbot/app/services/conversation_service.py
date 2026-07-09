@@ -1,4 +1,5 @@
 """Lógica principal del flujo conversacional del bot."""
+import re
 from typing import Any
 
 from app.core.constants import (
@@ -59,6 +60,11 @@ def _build_result_data(request: dict[str, Any], evaluation: dict[str, Any]) -> d
         "payment_capacity": float(evaluation["payment_capacity"]),
         "result": evaluation["result"],
     }
+
+
+def _contains_handoff_keyword(text: str) -> bool:
+    """Detecta palabras clave de derivación como palabras completas."""
+    return any(re.search(rf"\b{re.escape(keyword)}\b", text) for keyword in HANDOFF_KEYWORDS)
 
 
 def _reset_validation_failures(conversation_id: str) -> None:
@@ -124,8 +130,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     )
 
     normalized_text = text.strip().lower()
-    if state not in {HANDOFF_REQUESTED, FINISHED} and any(
-        keyword in normalized_text for keyword in HANDOFF_KEYWORDS
+    if state not in {HANDOFF_REQUESTED, FINISHED} and _contains_handoff_keyword(
+        normalized_text
     ):
         return _request_handoff(
             conversation_id,

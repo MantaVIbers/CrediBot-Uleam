@@ -11,7 +11,7 @@ from app.core.constants import (
     SHOW_RESULT,
     START,
 )
-from app.services.conversation_service import process_message
+from app.services.conversation_service import _contains_handoff_keyword, process_message
 
 # IDs ficticios para las pruebas
 USER_ID = "user-1"
@@ -147,3 +147,10 @@ def test_conversation_flow_basic(
 
     assert mock_save_inbound.call_count == 7
     assert mock_save_outbound.call_count == 7
+
+
+def test_contains_handoff_keyword():
+    """Verifica que las palabras clave de derivación coincidan solo como palabras completas."""
+    assert _contains_handoff_keyword("quiero hablar con un asesor") is True
+    assert _contains_handoff_keyword("impersonal") is False
+    assert _contains_handoff_keyword("necesito un agente") is True
