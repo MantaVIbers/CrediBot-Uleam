@@ -127,6 +127,13 @@ def general_info_message() -> str:
     )
 
 
+def policy_info_message(answer: str, continuation: str | None = None) -> str:
+    """Mensaje informativo recuperado desde políticas internas."""
+    if continuation:
+        return f"{answer}\n\nPara continuar: {continuation}"
+    return answer
+
+
 def confirm_data_message(data: dict) -> str:
     """Muestra resumen de datos para confirmación del usuario."""
     cedula_line = f"Cédula: {data['cedula']}\n" if data.get("cedula") else ""

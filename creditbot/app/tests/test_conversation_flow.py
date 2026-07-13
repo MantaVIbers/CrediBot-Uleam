@@ -205,6 +205,35 @@ def test_contains_handoff_keyword():
     assert _contains_handoff_keyword("necesito un agente") is True
 
 
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kwargs: kwargs["base_reply"])
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_policy_question_keeps_current_state(
+    mock_get_user,
+    mock_get_conversation,
+    mock_update_state,
+    mock_update_last_message,
+    mock_save_inbound,
+    mock_save_outbound,
+    mock_render,
+):
+    """Una duda informativa usa RAG y no rompe el paso actual."""
+    mock_get_user.return_value = {**_base_user(), "full_name": "Carlos Ortiz"}
+    mock_get_conversation.return_value = _base_conversation(ASK_AMOUNT)
+
+    reply = process_message("593999999999", "qué requisitos necesito?")
+
+    assert "políticas internas" in reply
+    assert "Requisitos básicos" in reply
+    assert "Para continuar" in reply
+    assert "monto" in reply.lower()
+    mock_update_state.assert_not_called()
+
+
 @patch("app.services.conversation_service.message_repository.save_outbound_message")
 @patch("app.services.conversation_service.message_repository.save_inbound_message")
 @patch("app.services.conversation_service.conversation_repository.update_last_message")

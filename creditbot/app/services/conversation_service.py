@@ -27,6 +27,7 @@ from app.services import (
     intent_service,
     message_service,
     precalificacion_service,
+    rag_service,
     validation_service,
 )
 
@@ -141,6 +142,28 @@ def _handle_validation_failure(
     return response
 
 
+def _continuation_prompt(state: str) -> str | None:
+    """Indica cómo retomar el flujo después de responder una duda informativa."""
+    prompts = {
+        MENU: "elige 1 para precalificar, 2 para información o 3 para asesor.",
+        ASK_NAME: "envíame tu nombre completo.",
+        ASK_CEDULA: "envíame tu número de cédula de 10 dígitos.",
+        CONSENT: "responde 1 para autorizar o 2 para no autorizar.",
+        ASK_PURPOSE: "indica el destino del crédito, por ejemplo estudios o negocio.",
+        ASK_AMOUNT: "indica el monto que deseas solicitar.",
+        ASK_TERM: "indica el plazo en meses, entre 3 y 36.",
+        ASK_INCOME: "indica tu ingreso mensual aproximado.",
+        CONFIRM_DATA: "responde 1 para confirmar o 2 para corregir.",
+    }
+    return prompts.get(state)
+
+
+def _policy_response_for_state(text: str, state: str) -> tuple[str, list[rag_service.RagChunk]]:
+    """Responde dudas de políticas y conserva el flujo actual."""
+    answer, chunks = rag_service.build_policy_answer(text)
+    return message_service.policy_info_message(answer, _continuation_prompt(state)), chunks
+
+
 def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = None) -> str:
     user = user_repository.get_or_create_user(phone)
     user_id = user["id"]
@@ -166,8 +189,13 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
 
     response = ""
     next_state = state
+    rag_chunks: list[rag_service.RagChunk] = []
 
-    if state == START:
+    if state not in {START, HANDOFF_REQUESTED, FINISHED} and intent_service.is_policy_question(text):
+        response, rag_chunks = _policy_response_for_state(text, state)
+        next_state = state
+
+    elif state == START:
         response = message_service.welcome_message()
         next_state = MENU
 
@@ -190,7 +218,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             next_state = ASK_NAME
         elif menu_option == "2":
             _reset_validation_failures(conversation_id)
-            response = message_service.general_info_message()
+            response, rag_chunks = _policy_response_for_state(text, MENU)
             next_state = MENU
         elif menu_option == "3":
             return _request_handoff(
@@ -416,7 +444,13 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
         base_reply=response,
         state=next_state,
         user_message=text,
-        context={"conversation_id": conversation_id},
+        context={
+            "conversation_id": conversation_id,
+            "rag_sources": [
+                {"title": chunk.title, "source": chunk.source}
+                for chunk in rag_chunks
+            ],
+        },
     )
     conversation_repository.update_last_message(conversation_id, response)
     message_repository.save_outbound_message(conversation_id, user_id, response)

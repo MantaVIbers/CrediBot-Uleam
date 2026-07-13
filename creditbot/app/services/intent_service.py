@@ -39,3 +39,34 @@ def confirmation_from_text(value: str) -> str | None:
         return "2"
     return None
 
+
+def is_policy_question(value: str) -> bool:
+    """Detecta preguntas informativas que deben responderse con RAG."""
+    text = _normalize(value)
+    if "?" in value:
+        return _has_any(
+            text,
+            {
+                "documentos",
+                "requisitos",
+                "tasa",
+                "tasas",
+                "plazo",
+                "plazos",
+                "monto",
+                "montos",
+                "cuota",
+                "score",
+            },
+        )
+    return _has_any(
+        text,
+        {
+            "documentos",
+            "requisitos",
+            "tasas",
+            "plazos",
+            "politica",
+            "condiciones",
+        },
+    )

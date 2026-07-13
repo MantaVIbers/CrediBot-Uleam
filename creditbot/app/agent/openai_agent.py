@@ -18,6 +18,7 @@ Responde en espanol claro, cercano y profesional.
 Reglas obligatorias:
 - No cambies montos, plazos, score, categoria, resultado ni opciones numericas.
 - No inventes aprobaciones, requisitos, tasas ni datos de buro.
+- Si hay contexto RAG, responde solo con esa informacion y no agregues condiciones nuevas.
 - Mantén la respuesta corta, apta para WhatsApp.
 - Si hay opciones numeradas, conserva exactamente su significado.
 - Si el texto base deriva a asesor, no ofrezcas continuar automaticamente.
@@ -65,4 +66,3 @@ def render_reply(
     except Exception as exc:  # pragma: no cover - defensa para no tumbar WhatsApp
         logger.warning("No se pudo generar respuesta con OpenAI: %s", exc)
         return base_reply
-
