@@ -101,6 +101,19 @@ def cerrar_caso_derivado(case_id: str) -> dict[str, Any]:
     return (response.data or [{}])[0]
 
 
+def obtener_auditoria_tools(limit: int = 100) -> list[dict[str, Any]]:
+    """Obtiene registros de auditoría de tools del agente IA."""
+    response = (
+        get_supabase_client()
+        .table("tool_audit_logs")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return response.data or []
+
+
 def probar_conexion() -> bool:
     """Prueba la conexión a Supabase consultando la tabla users."""
     get_supabase_client().table("users").select("id").limit(1).execute()
