@@ -11,9 +11,17 @@ services:
         value: production
       - key: APP_PUBLIC_URL
         sync: false
+      - key: WHATSAPP_PROVIDER
+        value: twilio
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_ENABLE_AI
+        value: "true"
+      - key: REDIS_URL
         sync: false
       - key: TWILIO_ACCOUNT_SID
         sync: false

@@ -21,16 +21,30 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_role_key: str = ""
 
+    # --- Redis (sesión activa; Upstash o Memorystore) ---
+    redis_url: str = ""
+    redis_session_ttl_seconds: int = 3600
+
     # --- OpenAI (IA conversacional + RAG) ---
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     openai_enable_ai: bool = True
+
+    # --- Proveedor de WhatsApp: twilio | meta ---
+    whatsapp_provider: str = "twilio"
 
     # --- Credenciales de Twilio (WhatsApp) ---
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
     twilio_whatsapp_from: str = ""
     twilio_validate_signature: bool = False
+
+    # --- Meta WhatsApp Cloud API ---
+    meta_whatsapp_token: str = ""
+    meta_whatsapp_phone_number_id: str = ""
+    meta_whatsapp_verify_token: str = ""
+    meta_whatsapp_app_secret: str = ""
+    meta_graph_api_version: str = "v21.0"
 
     # --- Configuración regional ---
     default_country_code: str = "593"

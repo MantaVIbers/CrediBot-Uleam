@@ -8,6 +8,7 @@ supabase
 httpx
 openai
 twilio
+redis
 streamlit
 pandas
 pytest

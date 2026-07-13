@@ -6,7 +6,6 @@ from app.core.constants import (
     ASK_AMOUNT,
     ASK_CEDULA,
     ASK_INCOME,
-    ASK_NAME,
     ASK_PURPOSE,
     ASK_TERM,
     CONFIRM_DATA,
@@ -16,12 +15,21 @@ from app.core.constants import (
     FINISHED,
     HANDOFF_REQUESTED,
     MENU,
+    NOT_ELIGIBLE,
     SHOW_RESULT,
     START,
+    VERIFY_IDENTITY,
 )
 from app.agent import openai_agent
+from app.domain import credit_rules
 from app.domain.cedula_validator import mask_cedula
-from app.repositories import conversation_repository, credit_repository, message_repository, user_repository
+from app.repositories import (
+    conversation_repository,
+    credit_profile_repository,
+    credit_repository,
+    message_repository,
+    user_repository,
+)
 from app.services import (
     handoff_service,
     intent_service,
@@ -30,6 +38,7 @@ from app.services import (
     rag_service,
     validation_service,
 )
+from app.services.session_store import get_session_store, validation_failure_key
 
 # Palabras clave que el usuario puede escribir para solicitar un asesor humano.
 # "persona" no se usa sola: provoca falsos positivos ("persona natural", etc.).
@@ -41,10 +50,6 @@ _HANDOFF_PERSONA_PATTERN = re.compile(
     r"\b(?:hablar con|quiero|necesito|pasar a|derivar(?:me)? a?).{0,30}\bpersona\b",
     re.IGNORECASE,
 )
-
-# Contador de fallos de validación por conversación (en memoria)
-_validation_failures: dict[str, int] = {}
-
 
 def _parse_amount(value: str) -> float:
     """Convierte el texto del monto a float."""
@@ -102,13 +107,12 @@ def _contains_handoff_keyword(text: str) -> bool:
 
 def _reset_validation_failures(conversation_id: str) -> None:
     """Reinicia el contador de fallos de validación para una conversación."""
-    _validation_failures.pop(conversation_id, None)
+    get_session_store().delete(validation_failure_key(conversation_id))
 
 
 def _track_validation_failure(conversation_id: str) -> bool:
     """Incrementa el contador de fallos y retorna True si se superó el límite."""
-    count = _validation_failures.get(conversation_id, 0) + 1
-    _validation_failures[conversation_id] = count
+    count = get_session_store().incr(validation_failure_key(conversation_id))
     return count >= MAX_VALIDATION_FAILURES
 
 
@@ -139,11 +143,7 @@ def _handle_validation_failure(
     user_id: str,
     response: str,
 ) -> str | None:
-    """Si se supera el límite de fallos, deriva a asesor; si no, retorna None.
-
-    Retornar None permite que el flujo normal persista el mensaje de error
-    (outbound, hint de asesor y redacción IA).
-    """
+    """Si se supera el límite de fallos, deriva a asesor; si no, retorna None."""
     if _track_validation_failure(conversation_id):
         return _request_handoff(
             conversation_id,
@@ -154,13 +154,42 @@ def _handle_validation_failure(
     return None
 
 
+def _verify_identity(cedula: str) -> dict[str, Any]:
+    """Consulta el buró simulado y evalúa elegibilidad temprana (RF-02/03/04)."""
+    profile = credit_profile_repository.get_profile_by_cedula(cedula)
+    if not profile:
+        return {
+            "ok": False,
+            "motivo": "sin_perfil",
+            "full_name": None,
+            "categoria": None,
+            "credit_score": None,
+        }
+
+    elegibilidad = credit_rules.verificar_elegibilidad(
+        int(profile.get("credit_score") or 0),
+        has_delinquency=bool(profile.get("has_delinquency")),
+        delinquency_days=int(profile.get("delinquency_days") or 0),
+        lista_negra=bool(profile.get("blacklisted")),
+        sin_historial=bool(profile.get("thin_file")),
+    )
+    return {
+        "ok": bool(elegibilidad["elegible"]),
+        "motivo": elegibilidad.get("motivo"),
+        "categoria": elegibilidad.get("categoria"),
+        "full_name": profile.get("full_name"),
+        "credit_score": int(profile.get("credit_score") or 0),
+        "profile": profile,
+    }
+
+
 def _continuation_prompt(state: str) -> str | None:
     """Indica cómo retomar el flujo después de responder una duda informativa."""
     prompts = {
         MENU: "elige 1 para precalificar, 2 para información o 3 para asesor.",
-        ASK_NAME: "envíame tu nombre completo.",
-        ASK_CEDULA: "envíame tu número de cédula de 10 dígitos.",
         CONSENT: "responde 1 para autorizar o 2 para no autorizar.",
+        ASK_CEDULA: "envíame tu número de cédula de 10 dígitos.",
+        VERIFY_IDENTITY: "espera la verificación o escribe 'asesor'.",
         ASK_PURPOSE: "indica el destino del crédito, por ejemplo estudios o negocio.",
         ASK_AMOUNT: "indica el monto que deseas solicitar.",
         ASK_TERM: "indica el plazo en meses, entre 3 y 36.",
@@ -217,7 +246,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     )
 
     normalized_text = text.strip().lower()
-    if state not in {HANDOFF_REQUESTED, FINISHED} and _contains_handoff_keyword(
+    if state not in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE} and _contains_handoff_keyword(
         normalized_text
     ):
         return _request_handoff(
@@ -232,7 +261,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     rag_chunks: list[rag_service.RagChunk] = []
 
     if (
-        state not in {START, HANDOFF_REQUESTED, FINISHED}
+        state not in {START, HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE}
         and intent_service.is_policy_question(text)
         and not intent_service.looks_like_numeric_answer(text)
     ):
@@ -258,8 +287,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
         elif menu_option == "1":
             _reset_validation_failures(conversation_id)
             credit_repository.create_draft_request(user_id, conversation_id)
-            response = message_service.ask_name_message()
-            next_state = ASK_NAME
+            response = message_service.ask_consent_message()
+            next_state = CONSENT
         elif menu_option == "2":
             _reset_validation_failures(conversation_id)
             response, rag_chunks = _policy_response_for_state(text, MENU)
@@ -272,22 +301,25 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 reason="menu_option_3",
             )
 
-    elif state == ASK_NAME:
-        is_valid, _ = validation_service.validate_name(text)
-        if not is_valid:
+    elif state == CONSENT:
+        confirmation = intent_service.confirmation_from_text(text)
+        if confirmation is None:
             handoff_response = _handle_validation_failure(
-                conversation_id, user_id, message_service.invalid_name_message()
+                conversation_id, user_id, message_service.invalid_confirmation_message()
             )
             if handoff_response:
                 return handoff_response
-            response = message_service.invalid_name_message()
-            next_state = ASK_NAME
-        else:
+            response = message_service.invalid_confirmation_message()
+            next_state = CONSENT
+        elif confirmation == "1":
             _reset_validation_failures(conversation_id)
-            user_repository.update_user_name(user_id, text.strip())
-            user["full_name"] = text.strip()
             response = message_service.ask_cedula_message()
             next_state = ASK_CEDULA
+        else:
+            _reset_validation_failures(conversation_id)
+            response = message_service.consent_declined_message()
+            next_state = FINISHED
+            conversation_repository.finish_conversation(conversation_id)
 
     elif state == ASK_CEDULA:
         is_valid, reason = validation_service.validate_cedula(text)
@@ -305,33 +337,40 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             request = credit_repository.get_draft_request(conversation_id)
             if request:
                 credit_repository.update_cedula(request["id"], cedula)
+            user_repository.update_cedula_consent(user_id, cedula)
             user["cedula"] = cedula
-            response = message_service.ask_consent_message()
-            next_state = CONSENT
 
-    elif state == CONSENT:
-        confirmation = intent_service.confirmation_from_text(text)
-        if confirmation is None:
-            handoff_response = _handle_validation_failure(
-                conversation_id, user_id, message_service.invalid_confirmation_message()
-            )
-            if handoff_response:
-                return handoff_response
-            response = message_service.invalid_confirmation_message()
-            next_state = CONSENT
-        elif confirmation == "1":
-            _reset_validation_failures(conversation_id)
-            request = credit_repository.get_draft_request(conversation_id)
-            cedula = (request or {}).get("cedula") or user.get("cedula")
-            if cedula:
-                user_repository.update_cedula_consent(user_id, cedula)
-            response = message_service.ask_purpose_message()
-            next_state = ASK_PURPOSE
-        else:
-            _reset_validation_failures(conversation_id)
-            response = message_service.consent_declined_message()
-            next_state = FINISHED
-            conversation_repository.finish_conversation(conversation_id)
+            # VERIFY_IDENTITY: consulta buró + elegibilidad temprana
+            verification = _verify_identity(cedula)
+            if verification["motivo"] == "sin_perfil":
+                response = message_service.cedula_not_found_message()
+                next_state = ASK_CEDULA
+            elif not verification["ok"]:
+                name = verification.get("full_name")
+                if name:
+                    user_repository.update_user_name(user_id, name)
+                    user["full_name"] = name
+                response = message_service.not_eligible_message(
+                    name,
+                    verification.get("motivo"),
+                    verification.get("categoria"),
+                )
+                next_state = NOT_ELIGIBLE
+                conversation_repository.finish_conversation(conversation_id)
+            else:
+                name = verification.get("full_name") or "Cliente"
+                user_repository.update_user_name(user_id, name)
+                user["full_name"] = name
+                response = (
+                    message_service.identity_verified_message(
+                        name,
+                        str(verification.get("categoria")),
+                        verification.get("credit_score"),
+                    )
+                    + "\n\n"
+                    + message_service.ask_purpose_message()
+                )
+                next_state = ASK_PURPOSE
 
     elif state == ASK_PURPOSE:
         is_valid, _ = validation_service.validate_purpose(text)
@@ -470,15 +509,15 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     next_state = SHOW_RESULT
         elif confirmation == "2":
             _reset_validation_failures(conversation_id)
-            response = message_service.ask_name_message()
-            next_state = ASK_NAME
+            response = message_service.ask_purpose_message()
+            next_state = ASK_PURPOSE
 
     elif state == SHOW_RESULT:
         response = message_service.finished_message()
         next_state = FINISHED
         conversation_repository.finish_conversation(conversation_id)
 
-    elif state in {HANDOFF_REQUESTED, FINISHED}:
+    elif state in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE}:
         user = user_repository.get_or_create_user(phone)
         conversation = conversation_repository.get_or_create_active_conversation(user["id"])
         conversation_id = conversation["id"]
@@ -489,7 +528,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     if next_state != state:
         conversation_repository.update_state(conversation_id, next_state)
 
-    if next_state not in {HANDOFF_REQUESTED, FINISHED}:
+    if next_state not in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE}:
         response = message_service.with_handoff_hint(response)
 
     response = openai_agent.render_reply(

@@ -70,7 +70,7 @@ https://abcd1234.ngrok-free.app/webhook/whatsapp
 Usa la URL de tu despliegue, por ejemplo:
 
 ```text
-https://creditbot-uleam.onrender.com/webhook/whatsapp
+https://credibot-uleam-gjj2.onrender.com/webhook/whatsapp
 ```
 
 ## Paso 5: Configurar el webhook en Twilio

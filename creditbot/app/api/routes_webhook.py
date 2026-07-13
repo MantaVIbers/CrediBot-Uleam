@@ -1,9 +1,13 @@
-"""Rutas del webhook de WhatsApp (Twilio)."""
+"""Rutas del webhook de WhatsApp (Twilio y Meta Cloud API)."""
+import hashlib
+import hmac
+import json
 import logging
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from app.core.config import settings
+from app.providers.whatsapp.meta import extract_meta_messages
 from app.schemas.whatsapp import extract_twilio_message
 from app.services.conversation_service import process_message
 from app.services.whatsapp_service import WhatsAppServiceError, send_text_message
@@ -42,22 +46,80 @@ def _validate_twilio_signature(request: Request, form_data: dict[str, str]) -> N
         raise HTTPException(status_code=403, detail="Firma de Twilio inválida.")
 
 
+def _validate_meta_signature(raw_body: bytes, signature_header: str | None) -> None:
+    """Valida X-Hub-Signature-256 si META_WHATSAPP_APP_SECRET está configurado."""
+    secret = (settings.meta_whatsapp_app_secret or "").strip()
+    if not secret:
+        return
+    if not signature_header or not signature_header.startswith("sha256="):
+        raise HTTPException(status_code=403, detail="Falta la firma de Meta.")
+    expected = hmac.new(
+        secret.encode("utf-8"),
+        raw_body,
+        hashlib.sha256,
+    ).hexdigest()
+    received = signature_header.removeprefix("sha256=")
+    if not hmac.compare_digest(expected, received):
+        raise HTTPException(status_code=403, detail="Firma de Meta inválida.")
+
+
+def _send_reply(phone: str, reply: str) -> None:
+    try:
+        send_text_message(phone, reply)
+    except WhatsAppServiceError as exc:
+        logger.error("No se pudo enviar mensaje a %s: %s", phone, exc)
+
+
 @router.get("/whatsapp")
-def whatsapp_webhook_status():
-    """Endpoint GET de verificación del webhook de Twilio."""
+async def whatsapp_webhook_get(request: Request):
+    """Verificación Meta (hub.challenge) o status del webhook."""
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
+    if mode == "subscribe" and challenge is not None:
+        expected = (settings.meta_whatsapp_verify_token or "").strip()
+        if not expected or token != expected:
+            raise HTTPException(status_code=403, detail="Verify token inválido.")
+        return Response(content=str(challenge), media_type="text/plain")
+
+    provider = (settings.whatsapp_provider or "twilio").strip().lower()
     return {
         "status": "ok",
-        "provider": "twilio",
-        "message": "Configura esta URL en Twilio Console como webhook entrante.",
+        "provider": provider,
+        "message": (
+            "Meta: usa esta URL en el webhook de WhatsApp Cloud API. "
+            "Twilio: configúrala como webhook entrante en Twilio Console."
+        ),
     }
 
 
 @router.post("/whatsapp")
 async def receive_whatsapp_webhook(request: Request):
-    """Recibe mensajes entrantes de Twilio, los procesa y responde."""
+    """Recibe mensajes entrantes (JSON Meta o form Twilio), procesa y responde."""
+    content_type = (request.headers.get("content-type") or "").lower()
+
+    if "application/json" in content_type:
+        raw_body = await request.body()
+        _validate_meta_signature(
+            raw_body,
+            request.headers.get("X-Hub-Signature-256"),
+        )
+        try:
+            payload = json.loads(raw_body.decode("utf-8") or "{}")
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise HTTPException(status_code=400, detail="JSON inválido.") from exc
+        for incoming in extract_meta_messages(payload):
+            reply = process_message(
+                incoming["phone"],
+                incoming["message"],
+                raw_payload=incoming["raw_payload"],
+            )
+            _send_reply(incoming["phone"], reply)
+        return {"status": "ok"}
+
     form = await request.form()
     form_data = {key: str(value) for key, value in form.items()}
-
     _validate_twilio_signature(request, form_data)
 
     incoming = extract_twilio_message(
@@ -68,15 +130,10 @@ async def receive_whatsapp_webhook(request: Request):
     if not incoming:
         return Response(content="", media_type="text/plain")
 
-    phone = incoming["phone"]
-    message = incoming["message"]
-    raw_payload = incoming["raw_payload"]
-
-    reply = process_message(phone, message, raw_payload=raw_payload)
-
-    try:
-        send_text_message(phone, reply)
-    except WhatsAppServiceError as exc:
-        logger.error("No se pudo enviar mensaje a %s: %s", phone, exc)
-
+    reply = process_message(
+        incoming["phone"],
+        incoming["message"],
+        raw_payload=incoming["raw_payload"],
+    )
+    _send_reply(incoming["phone"], reply)
     return Response(content="", media_type="text/plain")
