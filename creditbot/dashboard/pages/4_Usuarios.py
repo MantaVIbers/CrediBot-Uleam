@@ -47,6 +47,9 @@ preferred_columns = [
     "id",
     "full_name",
     "phone",
+    "cedula",
+    "consent_given",
+    "consent_at",
     "created_at",
     "updated_at",
 ]
