@@ -164,6 +164,34 @@ def _policy_response_for_state(text: str, state: str) -> tuple[str, list[rag_ser
     return message_service.policy_info_message(answer, _continuation_prompt(state)), chunks
 
 
+def _build_ai_context(
+    *,
+    conversation_id: str,
+    state_before: str,
+    state_after: str,
+    rag_chunks: list[rag_service.RagChunk],
+) -> dict[str, Any]:
+    """Arma el contexto permitido para que la IA redacte sin decidir el flujo."""
+    return {
+        "conversation_id": conversation_id,
+        "state_before": state_before,
+        "state_after": state_after,
+        "pending_step": _continuation_prompt(state_after),
+        "rag_context": [
+            {
+                "title": chunk.title,
+                "source": chunk.source,
+                "content": chunk.content,
+            }
+            for chunk in rag_chunks
+        ],
+        "rag_sources": [
+            {"title": chunk.title, "source": chunk.source}
+            for chunk in rag_chunks
+        ],
+    }
+
+
 def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = None) -> str:
     user = user_repository.get_or_create_user(phone)
     user_id = user["id"]
@@ -444,13 +472,12 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
         base_reply=response,
         state=next_state,
         user_message=text,
-        context={
-            "conversation_id": conversation_id,
-            "rag_sources": [
-                {"title": chunk.title, "source": chunk.source}
-                for chunk in rag_chunks
-            ],
-        },
+        context=_build_ai_context(
+            conversation_id=conversation_id,
+            state_before=state,
+            state_after=next_state,
+            rag_chunks=rag_chunks,
+        ),
     )
     conversation_repository.update_last_message(conversation_id, response)
     message_repository.save_outbound_message(conversation_id, user_id, response)

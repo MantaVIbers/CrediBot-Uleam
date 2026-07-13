@@ -55,8 +55,23 @@ def test_render_reply_invoca_openai_si_esta_configurado(monkeypatch):
         base_reply="Texto base con opcion 1",
         state="MENU",
         user_message="hola",
+        context={
+            "state_before": "ASK_AMOUNT",
+            "state_after": "ASK_AMOUNT",
+            "pending_step": "indica el monto que deseas solicitar.",
+            "rag_context": [
+                {
+                    "title": "Requisitos básicos",
+                    "source": "credito_mvp.md",
+                    "content": "Debe entregar nombre, cédula y monto.",
+                }
+            ],
+        },
     )
 
     assert reply == "Respuesta redactada por IA"
     assert llamadas[0]["model"] == "gpt-test"
     assert "Texto base con opcion 1" in llamadas[0]["input"]
+    assert "Estado anterior: ASK_AMOUNT" in llamadas[0]["input"]
+    assert "Paso pendiente para continuar" in llamadas[0]["input"]
+    assert "Debe entregar nombre, cédula y monto." in llamadas[0]["input"]
