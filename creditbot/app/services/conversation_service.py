@@ -18,6 +18,7 @@ from app.core.constants import (
     SHOW_RESULT,
     START,
 )
+from app.agent import openai_agent
 from app.domain.cedula_validator import mask_cedula
 from app.repositories import conversation_repository, credit_repository, message_repository, user_repository
 from app.services import handoff_service, message_service, precalificacion_service, validation_service
@@ -382,6 +383,12 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     if next_state != state:
         conversation_repository.update_state(conversation_id, next_state)
 
+    response = openai_agent.render_reply(
+        base_reply=response,
+        state=next_state,
+        user_message=text,
+        context={"conversation_id": conversation_id},
+    )
     conversation_repository.update_last_message(conversation_id, response)
     message_repository.save_outbound_message(conversation_id, user_id, response)
     return response
