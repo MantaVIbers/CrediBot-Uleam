@@ -21,9 +21,9 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_role_key: str = ""
 
-    # --- Configuración de OpenAI (IA conversacional) ---
+    # --- OpenAI (IA conversacional + RAG) ---
     openai_api_key: str = ""
-    openai_model: str = "gpt-5.5"
+    openai_model: str = "gpt-4o-mini"
     openai_enable_ai: bool = True
 
     # --- Credenciales de Twilio (WhatsApp) ---
@@ -34,10 +34,6 @@ class Settings(BaseSettings):
 
     # --- Configuración regional ---
     default_country_code: str = "593"
-
-    # --- OpenAI (asistente IA + RAG) ---
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini"
 
 
 settings = Settings()

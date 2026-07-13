@@ -12,7 +12,6 @@ from app.core.constants import (
     CONSENT,
     CREDIT_RESULT_PREAPPROVED,
     FINISHED,
-    INFO_AI,
     MENU,
     SHOW_RESULT,
     START,
@@ -285,77 +284,33 @@ def test_consent_declined_finishes_conversation(
     mock_finish.assert_called_once_with(CONVERSATION_ID)
 
 
-@patch("app.services.conversation_service.conversation_repository.create_conversation")
-@patch("app.services.conversation_service.conversation_repository.finish_conversation")
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda base_reply, **kwargs: base_reply)
 @patch("app.services.conversation_service.message_repository.save_outbound_message")
 @patch("app.services.conversation_service.message_repository.save_inbound_message")
 @patch("app.services.conversation_service.conversation_repository.update_last_message")
 @patch("app.services.conversation_service.conversation_repository.update_state")
 @patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
 @patch("app.services.conversation_service.user_repository.get_or_create_user")
-def test_restart_from_consent_returns_menu(
+def test_menu_option_2_returns_policy_info(
     mock_get_user,
     mock_get_conversation,
     mock_update_state,
     mock_update_last_message,
     mock_save_inbound,
     mock_save_outbound,
-    mock_finish,
-    mock_create_conversation,
+    _mock_render,
 ):
-    """Comenzar de nuevo durante el consentimiento reinicia al menú principal."""
-    mock_get_user.return_value = {**_base_user(), "full_name": "Carlos Ortiz"}
-    mock_get_conversation.return_value = _base_conversation(CONSENT)
-    mock_create_conversation.return_value = {
-        "id": "conv-2",
-        "user_id": USER_ID,
-        "current_state": START,
-        "is_active": True,
-    }
-
-    reply = process_message("593999999999", "Comenzar de nuevo")
-
-    assert "CrediBot" in reply
-    assert "Precalificar" in reply
-    mock_finish.assert_called_once_with(CONVERSATION_ID)
-    mock_create_conversation.assert_called_once_with(USER_ID)
-    mock_update_state.assert_called_once_with("conv-2", MENU)
-
-
-@patch("app.services.conversation_service.agent_service.is_agent_enabled", return_value=True)
-@patch("app.services.conversation_service.agent_service.answer_question")
-@patch("app.services.conversation_service.message_repository.save_outbound_message")
-@patch("app.services.conversation_service.message_repository.save_inbound_message")
-@patch("app.services.conversation_service.conversation_repository.update_last_message")
-@patch("app.services.conversation_service.conversation_repository.update_state")
-@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
-@patch("app.services.conversation_service.user_repository.get_or_create_user")
-def test_menu_option_2_enters_info_ai_mode(
-    mock_get_user,
-    mock_get_conversation,
-    mock_update_state,
-    mock_update_last_message,
-    mock_save_inbound,
-    mock_save_outbound,
-    mock_answer,
-    _mock_ai_enabled,
-):
-    """La opción 2 abre el modo IA cuando OpenAI está configurado."""
+    """La opción 2 responde con políticas y permanece en el menú."""
     mock_get_user.return_value = _base_user()
     mock_get_conversation.return_value = _base_conversation(MENU)
-    mock_answer.return_value = "Respuesta IA de prueba."
 
     reply_menu = process_message("593999999999", "2")
-    assert "Modo información con IA" in reply_menu
-    mock_update_state.assert_called_with(CONVERSATION_ID, INFO_AI)
 
-    mock_get_conversation.return_value = _base_conversation(INFO_AI)
-    reply_question = process_message("593999999999", "¿Qué es el score?")
-    assert "Respuesta IA de prueba" in reply_question
-    mock_answer.assert_called_once()
+    assert "política" in reply_menu.lower() or "información" in reply_menu.lower()
+    mock_update_state.assert_not_called()
 
 
-@patch("app.services.conversation_service.credit_repository.update_income")
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda base_reply, **kwargs: base_reply)
 @patch("app.services.conversation_service.credit_repository.update_term")
 @patch("app.services.conversation_service.credit_repository.update_amount")
 @patch("app.services.conversation_service.credit_repository.get_draft_request")

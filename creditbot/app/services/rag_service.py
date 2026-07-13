@@ -104,3 +104,18 @@ def build_policy_answer(query: str) -> tuple[str, list[RagChunk]]:
     answer = "Según las políticas internas del MVP:\n" + "\n".join(bullet_lines)
     return answer, chunks
 
+
+def is_rag_available() -> bool:
+    """True si hay documentos de política locales cargados."""
+    return bool(list(POLICY_DIR.glob("*.md")))
+
+
+def retrieve_context(query: str, limit: int = 3) -> list[str]:
+    """Compatibilidad con servicios IA: devuelve fragmentos como texto."""
+    return [f"{chunk.title}: {chunk.content}" for chunk in search_policies(query, limit)]
+
+
+def build_context_block(chunks: list[str]) -> str:
+    """Une fragmentos recuperados en un bloque de contexto."""
+    return "\n".join(chunks)
+

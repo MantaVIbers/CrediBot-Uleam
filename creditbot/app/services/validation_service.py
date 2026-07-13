@@ -29,8 +29,15 @@ def parse_numeric_value(value: str) -> float:
 
 
 def parse_term_value(value: str) -> int:
-    """Extrae el plazo en meses desde texto como '12', '12 meses' o 'en 12 plazos'."""
+    """Extrae el plazo en meses desde texto como '12', '12 meses', 'un año' o 'en 12 plazos'."""
     cleaned = value.strip()
+    lowered = cleaned.lower()
+    if re.search(r"\bun\s+a[nñ]o\b|\b1\s+a[nñ]o\b|\bdoce\s+meses\b", lowered):
+        return 12
+    if re.search(r"\bdos\s+a[nñ]os\b|\b2\s+a[nñ]os\b|\bveinticuatro\s+meses\b", lowered):
+        return 24
+    if re.search(r"\bseis\s+meses\b|\bmedio\s+a[nñ]o\b", lowered):
+        return 6
     try:
         return int(cleaned)
     except ValueError:
