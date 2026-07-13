@@ -10,8 +10,11 @@ def test_root_muestra_inicio_credibot():
 
     assert response.status_code == 200
     assert "CrediBot" in response.text
+    assert "Consola de demo" in response.text
     assert "/docs" in response.text
     assert "/simulate/message" in response.text
+    assert "/admin/handoff" in response.text
+    assert "593999000111" in response.text
 
 
 def test_ai_health_no_expone_api_key(monkeypatch):
