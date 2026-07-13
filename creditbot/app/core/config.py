@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     openai_enable_ai: bool = True
 
     # --- Proveedor de WhatsApp: twilio | meta ---
-    whatsapp_provider: str = "twilio"
+    whatsapp_provider: str = "meta"
 
     # --- Credenciales de Twilio (WhatsApp) ---
     twilio_account_sid: str = ""
