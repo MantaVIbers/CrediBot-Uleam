@@ -2,9 +2,14 @@
 
 Agente conversacional de precalificación de crédito por WhatsApp.
 
-**Stack:** Python, FastAPI, Supabase, Twilio WhatsApp.
+**Stack:** Python, FastAPI, Supabase, OpenAI y Twilio WhatsApp.
 
-CrediBot guía al usuario paso a paso, valida datos, calcula una precalificación básica (`preaprobado`, `observado`, `no_cumple`), registra la información en Supabase y deriva a un asesor humano cuando corresponde.
+CrediBot guía al usuario paso a paso, valida datos, calcula una precalificación (`preaprobado`, `observado`, `no_cumple`), redacta respuestas con IA cuando OpenAI está configurado, registra la información en Supabase y deriva a un asesor humano cuando corresponde.
+
+También incluye un RAG básico sobre políticas internas en Markdown para responder
+dudas de requisitos, documentos, plazos, tasas y condiciones sin inventar datos.
+Cuando el cliente pide un asesor, el sistema conserva el historial en `messages` y
+crea un caso con resumen y transcript para seguimiento humano.
 
 ## Estructura del proyecto
 
@@ -30,6 +35,7 @@ creditbot/
 
 - Python 3.11+
 - Proyecto en [Supabase](https://supabase.com)
+- API key de OpenAI para activar la redacción con IA
 - Cuenta en [Twilio Console](https://console.twilio.com) con WhatsApp Sandbox o número aprobado
 
 ## Instalación
@@ -56,6 +62,9 @@ Edita `creditbot/.env`:
 |---|---|
 | `SUPABASE_URL` | URL del proyecto Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service Role Key de Supabase |
+| `OPENAI_API_KEY` | API key usada por la capa de IA |
+| `OPENAI_MODEL` | Modelo de OpenAI para redactar respuestas |
+| `OPENAI_ENABLE_AI` | `true` para usar IA, `false` para usar solo fallback determinista |
 | `TWILIO_ACCOUNT_SID` | Account SID de Twilio Console |
 | `TWILIO_AUTH_TOKEN` | Auth Token de Twilio Console |
 | `TWILIO_WHATSAPP_FROM` | Número remitente, ej. `whatsapp:+14155238886` |
@@ -63,6 +72,43 @@ Edita `creditbot/.env`:
 | `TWILIO_VALIDATE_SIGNATURE` | `true` en producción, `false` en local |
 | `DEFAULT_COUNTRY_CODE` | Código de país por defecto, ej. `593` |
 | `ADMIN_DASHBOARD_PASSWORD` | Contraseña del panel administrativo Streamlit |
+
+## Activar IA conversacional
+
+La IA no decide la precalificación. El backend mantiene la máquina de estados,
+valida los datos y calcula el resultado con reglas deterministas. OpenAI solo
+redacta la respuesta final a partir de una respuesta base segura.
+
+Configura estas variables en local o Render:
+
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-5.5
+OPENAI_ENABLE_AI=true
+```
+
+Si `OPENAI_API_KEY` está vacío o la API falla, CrediBot responde con el texto
+base del flujo para no interrumpir la conversación.
+
+## RAG de políticas
+
+Las respuestas informativas usan documentos locales como fuente de verdad:
+
+```text
+docs/policies/
+└── credito_mvp.md
+```
+
+Ejemplos que activan RAG:
+
+```text
+qué requisitos necesito?
+qué documentos piden?
+cuáles son los plazos?
+```
+
+Si el usuario pregunta esto en medio del flujo, CrediBot responde la duda y luego
+le recuerda el dato pendiente para continuar.
 
 ## Configurar Supabase
 

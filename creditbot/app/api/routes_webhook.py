@@ -60,11 +60,11 @@ async def receive_whatsapp_webhook(request: Request):
 
     _validate_twilio_signature(request, form_data)
 
-    from_value = form_data.get("From", "")
-    body_value = form_data.get("Body", "")
-    message_sid = form_data.get("MessageSid") or None
-
-    incoming = extract_twilio_message(from_value, body_value, message_sid)
+    incoming = extract_twilio_message(
+        form_data.get("From", ""),
+        form_data.get("Body", ""),
+        form_data.get("MessageSid") or None,
+    )
     if not incoming:
         return Response(content="", media_type="text/plain")
 

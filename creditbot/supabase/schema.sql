@@ -57,10 +57,15 @@ create table if not exists handoff_cases (
     conversation_id uuid not null references conversations(id) on delete cascade,
     credit_request_id uuid references credit_requests(id) on delete set null,  -- Solicitud relacionada (opcional)
     reason text not null,                       -- Motivo de la derivación
+    handoff_summary text,                        -- Resumen para el asesor humano
+    transcript jsonb,                            -- Últimos mensajes para retomar contexto
     status text not null default 'pending' check (status in ('pending', 'assigned', 'closed')),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+alter table handoff_cases add column if not exists handoff_summary text;
+alter table handoff_cases add column if not exists transcript jsonb;
 
 -- =====================================================================
 -- CrediBot v2 — IA + tools + RAG (sección 10.2 del documento de arquitectura)
@@ -68,7 +73,9 @@ create table if not exists handoff_cases (
 
 -- Consentimiento e identidad del usuario (RF-08). La cédula se almacena en users
 -- solo tras el consentimiento; los datos crediticios viven en credit_profiles.
-alter table users add column if not exists cedula varchar(10) unique;
+alter table users add column if not exists cedula varchar(10);
+-- Sin UNIQUE en users.cedula: en demos varios teléfonos pueden usar la misma cédula seed.
+-- La unicidad del perfil crediticio vive en credit_profiles.cedula.
 alter table users add column if not exists consent_given boolean not null default false;
 alter table users add column if not exists consent_at timestamptz;
 
@@ -135,6 +142,7 @@ create index if not exists tool_audit_logs_conversation_idx
 
 -- Campos adicionales de la solicitud para el flujo v2 (score, categoría, monto máximo).
 alter table credit_requests add column if not exists cedula varchar(10);
+alter table credit_requests add column if not exists loan_purpose text;
 alter table credit_requests add column if not exists credit_score integer;
 alter table credit_requests add column if not exists score_category text;
 alter table credit_requests add column if not exists max_amount numeric(12, 2);

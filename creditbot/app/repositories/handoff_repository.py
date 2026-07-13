@@ -10,6 +10,8 @@ def create_handoff_case(
     conversation_id: str,
     reason: str,
     credit_request_id: str | None = None,
+    handoff_summary: str | None = None,
+    transcript: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Crea un caso de derivación a asesor humano."""
     payload: dict[str, Any] = {
@@ -20,6 +22,10 @@ def create_handoff_case(
     }
     if credit_request_id:
         payload["credit_request_id"] = credit_request_id
+    if handoff_summary:
+        payload["handoff_summary"] = handoff_summary
+    if transcript is not None:
+        payload["transcript"] = transcript
 
     response = get_supabase_client().table("handoff_cases").insert(payload).execute()
     return response.data[0]

@@ -1,0 +1,103 @@
+"""Agente OpenAI para redactar respuestas del bot.
+
+La maquina de estados y las reglas siguen viviendo en el backend. Este modulo
+solo toma una respuesta base ya validada y la redacta con tono natural.
+"""
+import logging
+from typing import Any
+
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+SYSTEM_PROMPT = """
+Eres CrediBot, asistente de precalificacion de credito por WhatsApp.
+Responde en espanol claro, cercano y profesional.
+
+Reglas obligatorias:
+- No cambies montos, plazos, score, categoria, resultado ni opciones numericas.
+- No inventes aprobaciones, requisitos, tasas ni datos de buro.
+- Si hay contexto RAG, responde solo con esa informacion y no agregues condiciones nuevas.
+- Si hay paso pendiente, conserva esa instruccion para que el usuario sepa como continuar.
+- Mantén la respuesta corta, apta para WhatsApp.
+- Si hay opciones numeradas, conserva exactamente su significado.
+- Si el texto base deriva a asesor, no ofrezcas continuar automaticamente.
+""".strip()
+
+
+def _is_configured() -> bool:
+    """Indica si la IA puede usarse en este entorno."""
+    return bool(settings.openai_enable_ai and settings.openai_api_key)
+
+
+def _format_context(context: dict[str, Any] | None) -> str:
+    """Convierte el contexto seguro a texto explícito para el modelo."""
+    if not context:
+        return "Sin contexto adicional."
+
+    lines = []
+    if context.get("state_before"):
+        lines.append(f"Estado anterior: {context['state_before']}")
+    if context.get("state_after"):
+        lines.append(f"Estado objetivo: {context['state_after']}")
+    if context.get("pending_step"):
+        lines.append(f"Paso pendiente para continuar: {context['pending_step']}")
+
+    rag_context = context.get("rag_context") or []
+    if rag_context:
+        lines.append("Contexto RAG permitido:")
+        for item in rag_context:
+            lines.append(
+                "- "
+                f"{item.get('title', 'Sin titulo')} "
+                f"({item.get('source', 'sin fuente')}): "
+                f"{item.get('content', '')}"
+            )
+
+    rag_sources = context.get("rag_sources") or []
+    if rag_sources:
+        lines.append(f"Fuentes RAG: {rag_sources}")
+
+    if context.get("conversation_id"):
+        lines.append(f"conversation_id: {context['conversation_id']}")
+
+    return "\n".join(lines) if lines else "Sin contexto adicional."
+
+
+def render_reply(
+    *,
+    base_reply: str,
+    state: str,
+    user_message: str,
+    context: dict[str, Any] | None = None,
+) -> str:
+    """Redacta una respuesta con OpenAI, o devuelve la base si no aplica.
+
+    La respuesta base es siempre la fuente de verdad. Si OpenAI no esta
+    configurado o falla, el flujo sigue funcionando con el texto determinista.
+    """
+    if not base_reply or not _is_configured():
+        return base_reply
+
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=settings.openai_api_key)
+        response = client.responses.create(
+            model=settings.openai_model,
+            instructions=SYSTEM_PROMPT,
+            input=(
+                f"Estado actual: {state}\n"
+                f"Mensaje del usuario: {user_message}\n"
+                f"{_format_context(context)}\n\n"
+                "Redacta esta respuesta base sin cambiar su informacion:\n"
+                f"{base_reply}"
+            ),
+            max_output_tokens=220,
+        )
+        rendered = (getattr(response, "output_text", "") or "").strip()
+        return rendered or base_reply
+    except Exception as exc:  # pragma: no cover - defensa para no tumbar WhatsApp
+        logger.warning("No se pudo generar respuesta con OpenAI: %s", exc)
+        return base_reply

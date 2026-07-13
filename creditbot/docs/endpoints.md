@@ -15,6 +15,21 @@ Verifica que el servidor esté activo.
 }
 ```
 
+### `GET /health/ai`
+
+Verifica si la capa de IA está habilitada y configurada sin exponer la API key.
+
+**Respuesta:**
+
+```json
+{
+  "status": "ok",
+  "enabled": true,
+  "configured": true,
+  "model": "gpt-5.5"
+}
+```
+
 ## Simulador local
 
 ### `POST /simulate/message`

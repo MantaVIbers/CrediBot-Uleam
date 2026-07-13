@@ -6,6 +6,7 @@ from app.core.constants import (
     ASK_CEDULA,
     ASK_INCOME,
     ASK_NAME,
+    ASK_PURPOSE,
     ASK_TERM,
     CONFIRM_DATA,
     CONSENT,
@@ -16,7 +17,7 @@ from app.core.constants import (
     SHOW_RESULT,
     START,
 )
-from app.services.conversation_service import process_message
+from app.services.conversation_service import _contains_handoff_keyword, process_message
 
 # IDs ficticios para las pruebas
 USER_ID = "user-1"
@@ -49,6 +50,7 @@ def _draft_request(**overrides):
         "user_id": USER_ID,
         "conversation_id": CONVERSATION_ID,
         "cedula": None,
+        "loan_purpose": None,
         "requested_amount": None,
         "term_months": None,
         "monthly_income": None,
@@ -77,6 +79,7 @@ def _preapproved_evaluation():
 @patch("app.services.conversation_service.precalificacion_service.precalificar_por_cedula")
 @patch("app.services.conversation_service.credit_repository.save_result_v2")
 @patch("app.services.conversation_service.user_repository.update_cedula_consent")
+@patch("app.services.conversation_service.credit_repository.update_purpose")
 @patch("app.services.conversation_service.credit_repository.update_cedula")
 @patch("app.services.conversation_service.message_repository.save_outbound_message")
 @patch("app.services.conversation_service.message_repository.save_inbound_message")
@@ -96,6 +99,7 @@ def test_conversation_flow_basic(
     mock_save_inbound,
     mock_save_outbound,
     mock_update_cedula,
+    mock_update_purpose,
     mock_update_cedula_consent,
     mock_save_result_v2,
     mock_precalificar,
@@ -110,6 +114,7 @@ def test_conversation_flow_basic(
         ASK_NAME,
         ASK_CEDULA,
         CONSENT,
+        ASK_PURPOSE,
         ASK_AMOUNT,
         ASK_TERM,
         ASK_INCOME,
@@ -129,11 +134,12 @@ def test_conversation_flow_basic(
     mock_get_draft.side_effect = [
         _draft_request(),                                                        # ASK_CEDULA
         _draft_request(cedula=CEDULA),                                           # CONSENT (lee cédula persistida)
-        _draft_request(cedula=CEDULA),                                           # ASK_AMOUNT
-        _draft_request(cedula=CEDULA, requested_amount=500),                     # ASK_TERM
-        _draft_request(cedula=CEDULA, requested_amount=500, term_months=12),     # ASK_INCOME (lectura)
-        _draft_request(cedula=CEDULA, requested_amount=500, term_months=12, monthly_income=700),  # ASK_INCOME (relectura)
-        _draft_request(cedula=CEDULA, requested_amount=500, term_months=12, monthly_income=700),  # CONFIRM_DATA
+        _draft_request(cedula=CEDULA),                                           # ASK_PURPOSE
+        _draft_request(cedula=CEDULA, loan_purpose="estudios"),                  # ASK_AMOUNT
+        _draft_request(cedula=CEDULA, loan_purpose="estudios", requested_amount=500),  # ASK_TERM
+        _draft_request(cedula=CEDULA, loan_purpose="estudios", requested_amount=500, term_months=12),  # ASK_INCOME (lectura)
+        _draft_request(cedula=CEDULA, loan_purpose="estudios", requested_amount=500, term_months=12, monthly_income=700),  # ASK_INCOME (relectura)
+        _draft_request(cedula=CEDULA, loan_purpose="estudios", requested_amount=500, term_months=12, monthly_income=700),  # CONFIRM_DATA
     ]
     mock_precalificar.return_value = _preapproved_evaluation()
 
@@ -167,8 +173,12 @@ def test_conversation_flow_basic(
         mock_update_cedula.assert_called_once()
 
         reply_consent = process_message("593999999999", "1")
-        assert "monto" in reply_consent.lower()
+        assert "para qué" in reply_consent.lower()
         mock_update_cedula_consent.assert_called_once()
+
+        reply_purpose = process_message("593999999999", "estudios")
+        assert "monto" in reply_purpose.lower()
+        mock_update_purpose.assert_called_once()
 
         reply_amount = process_message("593999999999", "500")
         assert "meses" in reply_amount.lower()
@@ -185,8 +195,46 @@ def test_conversation_flow_basic(
         mock_precalificar.assert_called_once()
         mock_save_result_v2.assert_called_once()
 
-    assert mock_save_inbound.call_count == 9
-    assert mock_save_outbound.call_count == 9
+    assert mock_save_inbound.call_count == 10
+    assert mock_save_outbound.call_count == 10
+
+
+def test_contains_handoff_keyword():
+    """Verifica que las palabras clave de derivación coincidan solo como palabras completas."""
+    assert _contains_handoff_keyword("quiero hablar con un asesor") is True
+    assert _contains_handoff_keyword("impersonal") is False
+    assert _contains_handoff_keyword("necesito un agente") is True
+    assert _contains_handoff_keyword("credito para persona natural") is False
+    assert _contains_handoff_keyword("hablar con una persona") is True
+
+
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kwargs: kwargs["base_reply"])
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_policy_question_keeps_current_state(
+    mock_get_user,
+    mock_get_conversation,
+    mock_update_state,
+    mock_update_last_message,
+    mock_save_inbound,
+    mock_save_outbound,
+    mock_render,
+):
+    """Una duda informativa usa RAG y no rompe el paso actual."""
+    mock_get_user.return_value = {**_base_user(), "full_name": "Carlos Ortiz"}
+    mock_get_conversation.return_value = _base_conversation(ASK_AMOUNT)
+
+    reply = process_message("593999999999", "qué requisitos necesito?")
+
+    assert "políticas internas" in reply
+    assert "Requisitos básicos" in reply
+    assert "Para continuar" in reply
+    assert "monto" in reply.lower()
+    mock_update_state.assert_not_called()
 
 
 @patch("app.services.conversation_service.message_repository.save_outbound_message")

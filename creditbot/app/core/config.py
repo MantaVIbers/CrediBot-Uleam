@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_role_key: str = ""
 
+    # --- Configuración de OpenAI (IA conversacional) ---
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.5"
+    openai_enable_ai: bool = True
+
     # --- Credenciales de Twilio (WhatsApp) ---
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""

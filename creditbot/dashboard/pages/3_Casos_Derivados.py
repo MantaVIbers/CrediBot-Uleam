@@ -1,10 +1,13 @@
 """Página del dashboard para visualizar casos derivados a asesor humano."""
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 
 from components.auth import require_auth
 from services.supabase_dashboard import (
     DashboardConfigError,
+    cerrar_caso_derivado,
     obtener_casos_derivados,
     obtener_solicitudes,
     obtener_usuarios,
@@ -32,6 +35,50 @@ def _term_text(value: object) -> str:
     return f"{int(value)} meses"
 
 
+def _reason_text(reason: object) -> str:
+    """Traduce motivos técnicos a texto para el asesor."""
+    labels = {
+        "user_requested_advisor": "Cliente solicitó asesor",
+        "menu_option_3": "Cliente eligió hablar con asesor",
+        "observed_result": "Resultado observado",
+        "repeated_invalid_input": "Fallos repetidos de validación",
+    }
+    return labels.get(str(reason), str(_safe_value(reason)))
+
+
+def _transcript_items(value: object) -> list[dict[str, Any]]:
+    """Normaliza el transcript guardado como JSONB."""
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def _message_role(direction: object) -> str:
+    if direction == "inbound":
+        return "Cliente"
+    if direction == "outbound":
+        return "CrediBot"
+    return "Mensaje"
+
+
+def _render_transcript(items: list[dict[str, Any]]) -> None:
+    """Muestra los últimos mensajes del caso."""
+    if not items:
+        st.info("Este caso no tiene transcript guardado. Revisa el historial por teléfono.")
+        return
+
+    for item in items:
+        direction = item.get("direction")
+        role = _message_role(direction)
+        content = item.get("content") or ""
+        timestamp = item.get("created_at") or ""
+        with st.chat_message("user" if direction == "inbound" else "assistant"):
+            st.markdown(f"**{role}**")
+            st.write(content)
+            if timestamp:
+                st.caption(str(timestamp))
+
+
 st.set_page_config(
     page_title="Casos Derivados - CrediBot",
     page_icon="CB",
@@ -41,6 +88,7 @@ st.set_page_config(
 require_auth()
 
 st.title("Casos Derivados")
+st.caption("Bandeja de atención humana con resumen y últimos mensajes del cliente.")
 
 try:
     casos_derivados = obtener_casos_derivados()
@@ -94,6 +142,21 @@ preferred_columns = [
 ]
 visible_columns = [column for column in preferred_columns if column in df.columns]
 
+summary_cols = st.columns(4)
+summary_cols[0].metric("Pendientes", len(df))
+summary_cols[1].metric(
+    "Solicitan asesor",
+    int((df["reason"] == "user_requested_advisor").sum()) if "reason" in df else 0,
+)
+summary_cols[2].metric(
+    "Observados",
+    int((df["reason"] == "observed_result").sum()) if "reason" in df else 0,
+)
+summary_cols[3].metric(
+    "Fallos de datos",
+    int((df["reason"] == "repeated_invalid_input").sum()) if "reason" in df else 0,
+)
+
 st.dataframe(df[visible_columns], use_container_width=True, hide_index=True)
 
 case_ids = df["id"].astype(str).tolist()
@@ -106,7 +169,7 @@ col1, col2 = st.columns(2)
 
 col1.write(f"**Cliente:** {_safe_value(selected_case.get('usuario_full_name'))}")
 col1.write(f"**Telefono:** {_safe_value(selected_case.get('usuario_phone'))}")
-col1.write(f"**Motivo:** {_safe_value(selected_case.get('reason'))}")
+col1.write(f"**Motivo:** {_reason_text(selected_case.get('reason'))}")
 col1.write(f"**Estado:** {_safe_value(selected_case.get('status'))}")
 
 col2.write(
@@ -117,3 +180,19 @@ col2.write(
     f"**Ingreso mensual:** {_money_text(selected_case.get('solicitud_monthly_income'))}"
 )
 col2.write(f"**Resultado:** {_safe_value(selected_case.get('solicitud_result'))}")
+
+st.markdown("### Resumen para asesor")
+st.info(str(_safe_value(selected_case.get("handoff_summary"), "Sin resumen guardado.")))
+
+st.markdown("### Últimos mensajes")
+_render_transcript(_transcript_items(selected_case.get("transcript")))
+
+st.markdown("### Gestión")
+if st.button("Cerrar caso", type="primary"):
+    try:
+        cerrar_caso_derivado(str(selected_case_id))
+    except Exception as exc:
+        st.error(f"No se pudo cerrar el caso: {exc}")
+    else:
+        st.success("Caso cerrado correctamente.")
+        st.rerun()

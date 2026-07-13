@@ -1,21 +1,29 @@
 # Despliegue de CrediBot
 
-## Render (recomendado para MVP)
+CrediBot tiene **dos servicios independientes**:
 
-El archivo `render.yaml` incluye una configuración base.
+| Servicio | Qué es | Puerto / URL |
+|---|---|---|
+| **Backend FastAPI** | Bot de WhatsApp (webhook Twilio) | `https://creditbot-uleam.onrender.com` |
+| **Panel Streamlit** | Dashboard administrativo | `https://creditbot-dashboard.onrender.com` |
+
+El archivo `render.yaml` define ambos servicios.
+
+## Backend en Render (bot WhatsApp)
 
 ### Pasos
 
 1. Sube el repositorio a GitHub
 2. Crea un **Web Service** en [Render](https://render.com)
 3. Conecta el repositorio `CrediBot-Uleam`
-4. Usa la rama `develop` o `main`
+4. Usa la rama `main`
 5. Configura:
    - **Root Directory:** `creditbot`
    - **Build Command:** `pip install -r requirements.txt`
    - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - **Health Check Path:** `/health`
 
-### Variables de entorno en Render
+### Variables de entorno del backend
 
 | Variable | Valor |
 |---|---|
@@ -27,59 +35,38 @@ El archivo `render.yaml` incluye una configuración base.
 | `TWILIO_ACCOUNT_SID` | Account SID |
 | `TWILIO_AUTH_TOKEN` | Auth Token |
 | `TWILIO_WHATSAPP_FROM` | `whatsapp:+14155238886` o tu número |
-| `OPENAI_API_KEY` | Clave API OpenAI (IA + RAG) |
-| `OPENAI_MODEL` | `gpt-4o-mini` (opcional) |
 
 ### Webhook en Twilio
-
-Configura:
 
 ```text
 https://tu-servicio.onrender.com/webhook/whatsapp
 ```
 
-## CI/CD (Integración y despliegue continuo)
+## Panel Streamlit en Render
 
-### CI — GitHub Actions
+### Pasos
 
-Archivo: `.github/workflows/ci.yml`
+1. En Render → **New +** → **Web Service**
+2. Mismo repositorio y rama `main`
+3. Configura:
 
-- Se ejecuta en cada **push** y **pull request** a `main` o `develop`.
-- Instala dependencias desde `creditbot/requirements.txt`.
-- Corre `pytest -v`.
-- Si falla, el merge/deploy no debe continuar hasta corregir.
+| Campo | Valor |
+|---|---|
+| **Name** | `creditbot-dashboard` |
+| **Root Directory** | `creditbot` |
+| **Build Command** | `pip install -r requirements.txt` |
+| **Start Command** | `streamlit run dashboard/app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false` |
+| **Health Check Path** | `/_stcore/health` |
 
-Verificar en GitHub → pestaña **Actions** → workflow **CI** en verde.
+### Variables de entorno del panel
 
-### CD — Render (auto-deploy)
+| Variable | Valor |
+|---|---|
+| `SUPABASE_URL` | Misma URL del backend |
+| `SUPABASE_SERVICE_ROLE_KEY` | Misma Service Role Key |
+| `ADMIN_DASHBOARD_PASSWORD` | Contraseña del panel admin |
 
-1. Conecta el repo GitHub a Render.
-2. Rama: **`develop`** (o `main` en producción final).
-3. **Root Directory:** `creditbot`.
-4. Cada push exitoso a la rama redeploya automáticamente.
-5. Health check: `GET /health` debe responder `{"status":"ok"}`.
-
-El archivo `render.yaml` define dos servicios:
-
-| Servicio | Comando | Health |
-|---|---|---|
-| `creditbot` | `uvicorn app.main:app ...` | `/health` |
-| `creditbot-dashboard` | `streamlit run dashboard/app.py ...` | `/_stcore/health` |
-
-### Flujo completo
-
-```text
-git push origin develop
-        │
-        ▼
-GitHub Actions (CI) ── pytest
-        │
-        ▼
-Render (CD) ── redeploy backend + panel
-        │
-        ▼
-Supabase + Twilio + OpenAI en producción
-```
+Guía detallada del panel: [`docs/streamlit_dashboard.md`](streamlit_dashboard.md)
 
 ## Railway
 

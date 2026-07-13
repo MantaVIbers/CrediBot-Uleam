@@ -1,13 +1,8 @@
 """Operaciones de base de datos para la tabla users."""
-import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from postgrest.exceptions import APIError
-
 from app.repositories.supabase_client import get_supabase_client
-
-logger = logging.getLogger(__name__)
 
 
 def get_user_by_phone(phone: str) -> dict[str, Any] | None:
@@ -59,34 +54,17 @@ def update_cedula_consent(user_id: str, cedula: str) -> dict[str, Any]:
     """Registra la cédula y el consentimiento del usuario (RF-08).
 
     La cédula solo se almacena tras el consentimiento explícito, junto con la
-    marca de tiempo en que fue otorgado.
-
-    En demos académicas la misma cédula ficticia del seed puede usarse desde
-    varios teléfonos de prueba. Si ya existe en otro usuario, se registra el
-    consentimiento sin duplicar la cédula en ``users``; la precalificación sigue
-    usando la cédula guardada en ``credit_requests``.
+    marca de tiempo en que fue otorgado. Si falla el update (p. ej. constraint
+    UNIQUE legado en BD remota), registra solo el consentimiento.
     """
-    client = get_supabase_client()
     now = datetime.now(timezone.utc).isoformat()
-    consent_payload = {
-        "cedula": cedula,
-        "consent_given": True,
-        "consent_at": now,
-        "updated_at": now,
-    }
     try:
-        response = client.table("users").update(consent_payload).eq("id", user_id).execute()
-    except APIError as exc:
-        if getattr(exc, "code", None) != "23505":
-            raise
-        logger.warning(
-            "Cédula %s ya registrada en otro usuario; se guarda solo el consentimiento.",
-            cedula,
-        )
         response = (
-            client.table("users")
+            get_supabase_client()
+            .table("users")
             .update(
                 {
+                    "cedula": cedula,
                     "consent_given": True,
                     "consent_at": now,
                     "updated_at": now,
@@ -95,4 +73,22 @@ def update_cedula_consent(user_id: str, cedula: str) -> dict[str, Any]:
             .eq("id", user_id)
             .execute()
         )
+        if response.data:
+            return response.data[0]
+    except Exception:
+        pass
+
+    response = (
+        get_supabase_client()
+        .table("users")
+        .update(
+            {
+                "consent_given": True,
+                "consent_at": now,
+                "updated_at": now,
+            }
+        )
+        .eq("id", user_id)
+        .execute()
+    )
     return response.data[0]

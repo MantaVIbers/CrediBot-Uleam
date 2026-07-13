@@ -29,10 +29,10 @@ insert into credit_profiles (
     has_delinquency, delinquency_days, blacklisted, thin_file
 ) values
     -- Excelentes (750–999)
-    ('0911111110', 'Carlos Ortiz Vera',        820, 'excelente',   0,     0.00,   0.00, false,  0, false, true),
+    ('0911111110', 'Carlos Ortiz Vera',        820, 'excelente',   0,     0.00,   0.00, false,  0, false, false),
     ('0922222229', 'Ana Lucía Vera Palma',     900, 'excelente',   2,  5000.00, 180.00, false,  0, false, false),
     ('0101010106', 'Pedro Salas Ochoa',        780, 'excelente',   1,  2000.00, 120.00, false,  0, false, false),
-    ('1305050500', 'Andrés Loor Zambrano',     760, 'excelente',   0,     0.00,   0.00, false,  0, false, true),
+    ('1305050500', 'Andrés Loor Zambrano',     760, 'excelente',   0,     0.00,   0.00, false,  0, false, false),
     ('0909090904', 'Fernando Palma Rivas',     850, 'excelente',   1,  1000.00,  90.00, false,  0, false, false),
     ('0303030308', 'Hugo Macías Delgado',      750, 'excelente',   1,  1200.00, 100.00, false,  0, false, false),
 

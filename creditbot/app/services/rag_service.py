@@ -1,152 +1,106 @@
-"""Recuperación de contexto (RAG) sobre la política de crédito.
+"""Recuperación básica de políticas para respuestas informativas.
 
-Usa embeddings de OpenAI sobre un documento local. Las tablas `rag_*` en Supabase
-quedan preparadas para una migración futura; este servicio funciona sin pgvector.
+Este RAG inicial usa documentos Markdown locales como fuente de verdad. Es
+determinista y testeable; más adelante puede reemplazarse por pgvector/Supabase.
 """
-from __future__ import annotations
-
-import logging
-import math
-import re
-from functools import lru_cache
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
-from app.core.config import settings
-from app.repositories import rag_repository
-
-logger = logging.getLogger(__name__)
-
-POLICY_PATH = Path(__file__).resolve().parents[2] / "data" / "politica_credito.md"
-EMBEDDING_MODEL = "text-embedding-3-small"
-CHUNK_SIZE = 500
+import re
+import unicodedata
 
 
-def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b, strict=False))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(x * x for x in b))
-    if not norm_a or not norm_b:
-        return 0.0
-    return dot / (norm_a * norm_b)
+POLICY_DIR = Path(__file__).resolve().parents[2] / "docs" / "policies"
+STOPWORDS = {
+    "a",
+    "al",
+    "con",
+    "de",
+    "del",
+    "el",
+    "en",
+    "es",
+    "la",
+    "las",
+    "lo",
+    "los",
+    "para",
+    "por",
+    "que",
+    "se",
+    "un",
+    "una",
+    "y",
+}
 
 
-def _split_policy(text: str) -> list[str]:
-    """Divide la política en fragmentos por secciones y párrafos."""
-    sections = re.split(r"\n(?=## )", text.strip())
-    chunks: list[str] = []
-    for section in sections:
-        section = section.strip()
-        if not section:
-            continue
-        if len(section) <= CHUNK_SIZE:
-            chunks.append(section)
-            continue
-        paragraphs = [p.strip() for p in section.split("\n\n") if p.strip()]
-        buffer = ""
-        for paragraph in paragraphs:
-            candidate = f"{buffer}\n\n{paragraph}".strip() if buffer else paragraph
-            if len(candidate) <= CHUNK_SIZE:
-                buffer = candidate
-            else:
+@dataclass(frozen=True)
+class RagChunk:
+    title: str
+    source: str
+    content: str
+    score: int
+
+
+def _normalize(value: str) -> str:
+    text = unicodedata.normalize("NFKD", value or "")
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return text.lower()
+
+
+def _tokens(value: str) -> set[str]:
+    words = set(re.findall(r"[a-z0-9]+", _normalize(value)))
+    return {word for word in words if len(word) > 2 and word not in STOPWORDS}
+
+
+def _iter_policy_sections() -> list[tuple[str, str, str]]:
+    sections: list[tuple[str, str, str]] = []
+    for path in sorted(POLICY_DIR.glob("*.md")):
+        current_title = path.stem
+        buffer: list[str] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("## "):
                 if buffer:
-                    chunks.append(buffer)
-                buffer = paragraph
+                    sections.append((current_title, path.name, "\n".join(buffer).strip()))
+                current_title = line.replace("## ", "", 1).strip()
+                buffer = []
+            elif line.strip() and not line.startswith("# "):
+                buffer.append(line.strip())
         if buffer:
-            chunks.append(buffer)
-    return chunks
+            sections.append((current_title, path.name, "\n".join(buffer).strip()))
+    return sections
 
 
-def _load_policy_text() -> str:
-    if not POLICY_PATH.is_file():
-        logger.warning("No se encontró el documento RAG en %s", POLICY_PATH)
-        return ""
-    return POLICY_PATH.read_text(encoding="utf-8")
-
-
-def _embed_texts(texts: list[str]) -> list[list[float]]:
-    from openai import OpenAI
-
-    client = OpenAI(api_key=settings.openai_api_key)
-    response = client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
-    return [item.embedding for item in response.data]
-
-
-@lru_cache(maxsize=1)
-def _indexed_chunks() -> tuple[tuple[str, ...], tuple[tuple[float, ...], ...]]:
-    """Carga chunks y embeddings (cacheados en memoria)."""
-    policy = _load_policy_text()
-    chunks = tuple(_split_policy(policy))
-    if not chunks or not settings.openai_api_key:
-        return (), ()
-    vectors = _embed_texts(list(chunks))
-    return chunks, tuple(tuple(vector) for vector in vectors)
-
-
-def is_rag_available() -> bool:
-    """Indica si hay documento de política y API key para embeddings."""
-    return bool(_load_policy_text().strip() and settings.openai_api_key)
-
-
-def retrieve_context(query: str, *, top_k: int = 3) -> list[str]:
-    """Devuelve los fragmentos más relevantes para la pregunta del usuario."""
-    supabase_chunks = _retrieve_from_supabase(query, top_k=top_k)
-    if supabase_chunks:
-        return supabase_chunks
-
-    chunks, vectors = _indexed_chunks()
-    if not chunks or not vectors:
+def search_policies(query: str, limit: int = 2) -> list[RagChunk]:
+    """Busca secciones relevantes de políticas usando coincidencia léxica."""
+    query_tokens = _tokens(query)
+    if not query_tokens:
         return []
 
-    if not is_rag_available():
-        return list(chunks[:top_k])
+    results: list[RagChunk] = []
+    for title, source, content in _iter_policy_sections():
+        section_tokens = _tokens(f"{title} {content}")
+        score = len(query_tokens & section_tokens)
+        if score > 0:
+            results.append(RagChunk(title=title, source=source, content=content, score=score))
 
-    query_vector = _embed_texts([query])[0]
-    scored: list[tuple[float, str]] = []
-    for chunk, vector in zip(chunks, vectors, strict=False):
-        scored.append((_cosine_similarity(query_vector, list(vector)), chunk))
-    scored.sort(key=lambda item: item[0], reverse=True)
-    return [chunk for score, chunk in scored[:top_k] if score > 0.15]
-
-
-def _parse_embedding(raw: Any) -> list[float] | None:
-    if raw is None:
-        return None
-    if isinstance(raw, list):
-        return [float(x) for x in raw]
-    if isinstance(raw, str):
-        cleaned = raw.strip("[]")
-        if not cleaned:
-            return None
-        return [float(x.strip()) for x in cleaned.split(",")]
-    return None
+    return sorted(results, key=lambda chunk: (-chunk.score, chunk.title))[:limit]
 
 
-def _retrieve_from_supabase(query: str, *, top_k: int = 3) -> list[str]:
-    """Busca en rag_chunks de Supabase si hay embeddings indexados."""
-    if not settings.openai_api_key:
-        return []
-    rows = rag_repository.list_chunks_with_embeddings()
-    if not rows:
-        return []
-    try:
-        query_vector = _embed_texts([query])[0]
-    except Exception:  # noqa: BLE001
-        return []
-
-    scored: list[tuple[float, str]] = []
-    for row in rows:
-        vector = _parse_embedding(row.get("embedding"))
-        content = row.get("content")
-        if not vector or not content:
-            continue
-        scored.append((_cosine_similarity(query_vector, vector), str(content)))
-    scored.sort(key=lambda item: item[0], reverse=True)
-    return [chunk for score, chunk in scored[:top_k] if score > 0.15]
-
-
-def build_context_block(chunks: list[str]) -> str:
-    """Formatea los fragmentos recuperados para el prompt del LLM."""
+def build_policy_answer(query: str) -> tuple[str, list[RagChunk]]:
+    """Construye una respuesta breve a partir de las secciones recuperadas."""
+    chunks = search_policies(query)
     if not chunks:
-        return ""
-    return "\n\n---\n\n".join(chunks)
+        return (
+            "No encontré una política específica para esa consulta. "
+            "Puedo darte información general o derivarte con un asesor.",
+            [],
+        )
+
+    bullet_lines = []
+    for chunk in chunks:
+        summary = " ".join(chunk.content.split())
+        bullet_lines.append(f"- {chunk.title}: {summary}")
+
+    answer = "Según las políticas internas del MVP:\n" + "\n".join(bullet_lines)
+    return answer, chunks
+

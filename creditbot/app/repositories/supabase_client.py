@@ -8,7 +8,7 @@ from app.core.config import settings
 
 @lru_cache
 def get_supabase_client() -> Client:
-    """Retorna el cliente de Supabase (cachead0, una sola instancia)."""
+    """Retorna el cliente de Supabase (cacheado, una sola instancia)."""
     if not settings.supabase_url or not settings.supabase_service_role_key:
         raise ValueError(
             "SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY deben estar configurados en .env"

@@ -5,7 +5,7 @@ Documento de trabajo que resume **qué se ha construido**, **con qué herramient
 precalificación de crédito por WhatsApp).
 
 > Repositorio: `MantaVIbers/CrediBot-Uleam` · Rama de trabajo: `develop`
-> Despliegue: `https://credibot-uleam.onrender.com`
+> Despliegue: `https://credibot-uleam-gjj2.onrender.com`
 
 ---
 
@@ -18,7 +18,9 @@ resultado: **preaprobado**, **observado** o **no cumple**, con el monto máximo,
 estimada y la tasa referencial.
 
 La lógica crediticia es **determinista** (reglas de negocio puras), de modo que el
-resultado sea explicable y reproducible, no un número inventado.
+resultado sea explicable y reproducible, no un número inventado. La IA se usa como
+capa de redacción: mejora el lenguaje de la respuesta, pero no cambia estados,
+montos, tasas, score ni resultados.
 
 ---
 
@@ -36,6 +38,7 @@ WhatsApp / Simulador
         ▼
   Servicios      ──►  conversation_service (flujo), precalificacion_service, validation_service...
         │
+        ├─► Agente IA      ──►  openai_agent   (redacción controlada, con fallback)
         ├─► Dominio        ──►  cedula_validator, credit_rules   (lógica pura, sin BD)
         │
         └─► Repositorios   ──►  acceso a Supabase (users, credit_requests, credit_profiles,
@@ -45,6 +48,8 @@ WhatsApp / Simulador
 - **Dominio**: reglas de negocio puras (validación de cédula y motor de crédito). No
   conoce la base de datos ni el canal. Es 100% testeable.
 - **Servicios**: orquestan el flujo de la conversación y combinan dominio + repositorios.
+- **Agente IA**: redacta respuestas con OpenAI cuando hay API key; si falla, devuelve
+  el texto base para no cortar la conversación.
 - **Repositorios**: única capa que habla con Supabase.
 - **API**: expone los endpoints HTTP.
 
@@ -100,6 +105,45 @@ Commits).
   la conversación.
 - _Commit:_ `feat(audit): auditoria de tools con cedula enmascarada (tool_audit_logs)`
 
+### Paso 7 — Agente IA con OpenAI
+- `app/agent/openai_agent.py`: integra OpenAI mediante `client.responses.create`.
+  Recibe una respuesta base ya validada por el backend y la redacta en tono natural
+  para WhatsApp.
+- La IA no decide el crédito: conserva opciones, montos, plazos, score, categoría y
+  resultado. Si no existe `OPENAI_API_KEY` o la API falla, el bot responde con el
+  texto base.
+- El agente recibe contexto seguro: estado anterior, estado objetivo, paso pendiente
+  y fragmentos RAG permitidos. Esto evita que el modelo pierda el flujo o invente
+  condiciones.
+- Tests cubren el fallback sin API key, el flag de desactivación y la llamada mockeada
+  a OpenAI.
+- _Commits:_ `agrega agente de ia`, `mejora contexto de ia`
+
+### Paso 8 — Intención natural y destino del crédito
+- `app/services/intent_service.py`: permite detectar intención del usuario sin obligarlo
+  a escribir solo números (`quiero un crédito`, `información`, `hablar con asesor`).
+- El flujo ahora recopila el destino o producto de interés antes del monto, por ejemplo
+  estudios, negocio, consumo o emergencia.
+- La opción de asesor queda visible durante el flujo con un recordatorio permanente.
+- _Commits:_ `mejora intencion del flujo`, `agrega destino del credito`
+
+### Paso 9 — RAG básico de políticas
+- `docs/policies/credito_mvp.md`: documento fuente para requisitos, documentos, montos,
+  plazos, tasas referenciales y derivación humana.
+- `app/services/rag_service.py`: recupera secciones relevantes por coincidencia léxica
+  y construye una respuesta informativa con fuente local.
+- El flujo responde dudas de políticas sin cambiar el estado actual; luego recuerda qué
+  dato falta para continuar.
+- _Commits:_ `agrega rag de politicas`, `conecta rag al flujo`
+
+### Paso 10 — Handoff con resumen y transcript
+- Cada mensaje entrante y saliente se guarda en `messages` con `conversation_id`, de modo
+  que el historial puede consultarse después.
+- Los casos de `handoff_cases` ahora guardan `handoff_summary` y `transcript` con los
+  últimos mensajes relevantes para que el asesor humano retome el caso con contexto.
+- El resumen indica el motivo de derivación y el último mensaje del cliente.
+- _Commit:_ `guarda resumen de handoff`
+
 ### DevOps — CI/CD y contenerización
 - `.github/workflows/ci.yml`: pipeline de **GitHub Actions** que instala dependencias y
   corre las pruebas en cada push/PR a `main` y `develop`.
@@ -118,19 +162,7 @@ Commits).
   el consentimiento no se guardaba en `users` porque la cédula se leía de un objeto en
   memoria que se recargaba en cada mensaje; ahora se lee de la solicitud ya persistida.
 
-### Paso 7 — Integración OpenAI en todo el flujo
-- `app/services/ai_input_service.py`: normaliza lenguaje natural (ej. *un año* → 12 meses,
-  *cinco mil* → 5000, *sí autorizo* → 1) antes de validar cada paso.
-- `app/services/agent_service.py`: agente OpenAI con function calling (`consultar_politica_credito`,
-  `validar_cedula`, `explicar_reglas_credito`) en modo INFO_AI (menú opción 2).
-- `app/services/ai_assistant_service.py` + `rag_service.py`: RAG sobre política de crédito.
-- Auditoría en `tool_audit_logs` para cada tool (`normalizar_entrada_usuario`,
-  `consultar_politica_credito`, `validar_cedula`, `explicar_reglas_credito`,
-  `agente_openai_tools`, `precalificar_por_cedula`).
-- Documentación: `docs/ia_tools_rag.md`.
-- _Commits:_ integración OpenAI, RAG Supabase, agente con tools, docs y panel auditoría.
-
-**Estado de pruebas:** suite pytest completa en verde (ver CI en GitHub Actions).
+**Estado de pruebas:** 90 pruebas automatizadas, todas en verde.
 
 ---
 
@@ -176,7 +208,6 @@ Commits).
 | **GitHub Actions** | Integración continua (CI) | En cada push/PR instala dependencias y corre las pruebas automáticamente (build + tests). |
 | **Docker** | Contenedores | Empaqueta la app con sus dependencias para ejecutarla igual en cualquier entorno; opción de despliegue portable. |
 | **Render** | Plataforma de despliegue (PaaS) | Publica el backend con una URL pública accesible, con despliegue automático desde la rama de Git. |
-| **OpenAI API** | Modelos de lenguaje y embeddings | Normalización de texto, RAG y agente con function calling. |
 
 ### Panel administrativo (complementario)
 
@@ -236,23 +267,15 @@ docker run --rm -p 8000:8000 --env-file .env credibot
 | `TWILIO_VALIDATE_SIGNATURE` | `true` en producción con Twilio, `false` en local. |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` | Credenciales de Twilio (para WhatsApp real). |
 | `ADMIN_DASHBOARD_PASSWORD` | Clave del panel Streamlit (solo panel, no el backend). |
-| `OPENAI_API_KEY` | Clave OpenAI para IA y RAG. |
-| `OPENAI_MODEL` | Modelo chat (default `gpt-4o-mini`). |
 
 > El archivo `.env` **no se versiona** (está en `.gitignore`) porque contiene secretos.
 
 ---
 
-## 8. Documentación relacionada
+## 8. Próximos pasos
 
-- `docs/ia_tools_rag.md` — cálculos, tools, RAG, CI/CD y checklist de demo.
-- `docs/despliegue.md` — despliegue en Render y variables de entorno.
-- `docs/flujo_conversacional.md` — estados del bot.
-
----
-
-## 9. Próximos pasos
-
-1. Mantener demo estable en Render con `OPENAI_API_KEY` configurada.
-2. Mostrar auditoría IA en el panel Streamlit durante la presentación.
-3. Fusionar `develop → main` cuando el equipo lo decida.
+1. Configurar **Twilio** para probar desde WhatsApp real (webhook →
+   `/webhook/whatsapp`).
+2. Fusionar `develop → main` y apuntar Render a `main`.
+3. (Futuro) Agente IA con tools + RAG sobre políticas de crédito (tablas ya previstas en
+   el esquema).

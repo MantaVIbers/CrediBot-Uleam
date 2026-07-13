@@ -5,6 +5,8 @@ Documento consolidado de tareas basado en:
 - `contexto aplicacion/creditbot_desarrollo_tareas_fastapi_supabase.md` (backend FastAPI + Supabase)
 - `contexto aplicacion/creditbot_streamlit_panel_desarrollo.md` (panel administrativo Streamlit)
 
+**Última actualización:** julio 2026 — `main` y `develop` unificados con backend, panel Streamlit y despliegue en Render.
+
 ## Leyenda de estados
 
 | Símbolo | Estado |
@@ -221,11 +223,12 @@ Documento consolidado de tareas basado en:
 ### Tarea 15 — Crear webhook de WhatsApp *(Tarea 14 del doc. backend)*
 
 **Estado:** Hecho
-**Objetivo:** recibir mensajes reales desde WhatsApp Cloud API o sandbox.
+**Objetivo:** recibir mensajes reales desde Twilio WhatsApp Sandbox.
 **Archivos:** `app/api/routes_webhook.py`, `app/schemas/whatsapp.py`
 
-- [x] Crear `GET /webhook/whatsapp` con validación de token (`hub.mode`, `hub.verify_token`, `hub.challenge`)
-- [x] Crear `POST /webhook/whatsapp` para recibir payload de WhatsApp
+- [x] Crear `GET /webhook/whatsapp` para verificar estado del endpoint
+- [x] Crear `POST /webhook/whatsapp` para recibir mensajes de Twilio
+- [x] Validar firma de Twilio en producción (`TWILIO_VALIDATE_SIGNATURE`)
 - [x] Extraer teléfono y mensaje del payload
 - [x] Enviar mensaje al motor conversacional
 - [x] Enviar respuesta usando servicio de WhatsApp
@@ -235,11 +238,11 @@ Documento consolidado de tareas basado en:
 ### Tarea 16 — Crear servicio de envío por WhatsApp *(Tarea 15 del doc. backend)*
 
 **Estado:** Hecho
-**Objetivo:** enviar respuestas al cliente mediante la API de WhatsApp.
+**Objetivo:** enviar respuestas al cliente mediante Twilio Console.
 **Archivos:** `app/services/whatsapp_service.py`
 
-- [x] Configurar URL de WhatsApp Cloud API
-- [x] Enviar token en headers
+- [x] Configurar credenciales Twilio (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`)
+- [x] Configurar número remitente (`TWILIO_WHATSAPP_FROM`)
 - [x] Enviar mensaje de texto (`send_text_message`)
 - [x] Manejar errores de API
 
@@ -275,7 +278,7 @@ Documento consolidado de tareas basado en:
 
 **Estado:** Hecho
 **Objetivo:** validar los componentes principales del backend.
-**Archivos:** `app/tests/test_credit_service.py`, `app/tests/test_validation_service.py`, `app/tests/test_conversation_flow.py`
+**Archivos:** `app/tests/test_credit_service.py`, `app/tests/test_validation_service.py`, `app/tests/test_conversation_flow.py`, `app/tests/test_whatsapp_twilio.py`
 
 - [x] Validar monto correcto
 - [x] Rechazar monto inválido
@@ -292,7 +295,7 @@ Documento consolidado de tareas basado en:
 
 **Estado:** Hecho
 **Objetivo:** dejar instrucciones claras para que cualquier integrante pueda ejecutar el proyecto.
-**Archivos:** `README.md`, `docs/endpoints.md`, `docs/flujo_conversacional.md`
+**Archivos:** `README.md`, `docs/endpoints.md`, `docs/flujo_conversacional.md`, `docs/twilio_setup.md`
 
 - [x] Descripción del proyecto y tecnologías usadas
 - [x] Instrucciones de instalación
@@ -307,12 +310,14 @@ Documento consolidado de tareas basado en:
 ### Tarea 21 — Preparar despliegue *(Tarea 20 del doc. backend)*
 
 **Estado:** Hecho
-**Objetivo:** dejar listo el backend para una demostración en línea (Render, Railway o Fly.io).
+**Objetivo:** dejar listo el backend para una demostración en línea (Render).
+**Archivos:** `Procfile`, `render.yaml`, `docs/despliegue.md`
 
-- [x] Crear archivo de configuración de despliegue si aplica
-- [x] Configurar variables de entorno en la plataforma
-- [x] Verificar endpoint `/health` en producción
-- [x] Configurar URL pública como webhook de WhatsApp (Twilio)
+- [x] Crear archivo de configuración de despliegue (`Procfile`, `render.yaml`)
+- [x] Configurar variables de entorno en Render
+- [x] Verificar endpoint `/health` en producción (`https://credibot-uleam.onrender.com/health`)
+- [x] Configurar URL pública como webhook de WhatsApp en Twilio Sandbox
+- [x] Corregir validación de firma Twilio con payload completo del formulario
 - [x] Probar mensaje real desde WhatsApp
 
 ---
@@ -323,6 +328,7 @@ Documento consolidado de tareas basado en:
 
 **Estado:** Hecho
 **Objetivo:** crear una carpeta independiente para el panel administrativo dentro del proyecto.
+**Archivos:** `dashboard/app.py`, `dashboard/pages/`, `dashboard/services/`, `dashboard/components/`
 
 - [x] Crear carpeta `dashboard`
 - [x] Crear archivo `app.py`
@@ -339,7 +345,7 @@ Documento consolidado de tareas basado en:
 **Objetivo:** conectar el panel administrativo con Supabase para consultar usuarios y solicitudes.
 **Archivos:** `dashboard/services/supabase_dashboard.py`
 
-- [x] Instalar `supabase` y `python-dotenv`
+- [x] Instalar `supabase`, `streamlit` y `pandas` en `requirements.txt`
 - [x] Crear archivo `services/supabase_dashboard.py`
 - [x] Cargar variables de entorno
 - [x] Crear cliente de Supabase
@@ -412,8 +418,9 @@ Documento consolidado de tareas basado en:
 
 **Estado:** Hecho
 **Objetivo:** proteger el acceso al dashboard administrativo con una contraseña básica para el MVP.
+**Archivos:** `dashboard/components/auth.py`, `.env.example`
 
-- [x] Crear variable `ADMIN_DASHBOARD_PASSWORD` en `.env`
+- [x] Crear variable `ADMIN_DASHBOARD_PASSWORD` en `.env.example`
 - [x] Crear pantalla de login
 - [x] Guardar autenticación en `st.session_state`
 - [x] Evitar acceso al dashboard sin contraseña
@@ -424,13 +431,15 @@ Documento consolidado de tareas basado en:
 ### Tarea 29 — Preparar ejecución local del panel *(Tarea 08 del doc. Streamlit)*
 
 **Estado:** Hecho
-**Objetivo:** documentar y probar cómo ejecutar el dashboard localmente (`streamlit run dashboard/app.py`).
+**Objetivo:** documentar y probar cómo ejecutar el dashboard localmente.
+**Archivos:** `docs/streamlit_dashboard.md`
 
-- [x] Instalar dependencias
-- [x] Configurar `.env`
-- [x] Ejecutar Streamlit
+- [x] Instalar dependencias (`streamlit`, `pandas`)
+- [x] Configurar `.env` con `ADMIN_DASHBOARD_PASSWORD`
+- [x] Ejecutar Streamlit (`streamlit run dashboard/app.py`)
 - [x] Verificar conexión a Supabase
 - [x] Probar filtros y vistas
+- [x] Documentar en `docs/streamlit_dashboard.md`
 
 ---
 
@@ -438,16 +447,24 @@ Documento consolidado de tareas basado en:
 
 El MVP se considera completo cuando:
 
-- [ ] El servidor FastAPI levanta correctamente
-- [ ] Supabase está conectado
-- [ ] Se puede simular una conversación completa
-- [ ] Cada usuario mantiene su propio estado
-- [ ] Los datos se guardan en Supabase
-- [ ] La regla de negocio calcula un resultado
-- [ ] El bot responde con `preaprobado`, `observado` o `no_cumple`
-- [ ] Se registra derivación humana si aplica
-- [ ] El webhook de WhatsApp está implementado
-- [ ] Existe documentación para ejecutar y probar
-- [ ] El proyecto está organizado en Git con ramas y commits claros
-- [ ] El panel Streamlit muestra métricas, solicitudes, casos derivados y usuarios
-- [ ] El panel Streamlit está protegido con contraseña
+- [x] El servidor FastAPI levanta correctamente
+- [x] Supabase está conectado
+- [x] Se puede simular una conversación completa
+- [x] Cada usuario mantiene su propio estado
+- [x] Los datos se guardan en Supabase
+- [x] La regla de negocio calcula un resultado
+- [x] El bot responde con `preaprobado`, `observado` o `no_cumple`
+- [x] Se registra derivación humana si aplica
+- [x] El webhook de WhatsApp está implementado y funcionando en producción (Render + Twilio)
+- [x] Existe documentación para ejecutar y probar
+- [x] El proyecto está organizado en Git con ramas y commits claros
+- [x] El panel Streamlit muestra métricas, solicitudes, casos derivados y usuarios
+- [x] El panel Streamlit está protegido con contraseña
+
+---
+
+# Próximos pasos sugeridos
+
+1. **Desplegar el panel Streamlit** en Render como servicio independiente
+2. **Levantar el panel localmente** y verificar datos reales de Supabase
+3. **Completar una conversación de prueba** de punta a punta por WhatsApp (precalificación completa)

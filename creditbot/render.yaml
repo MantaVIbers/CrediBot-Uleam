@@ -25,10 +25,6 @@ services:
         value: "true"
       - key: DEFAULT_COUNTRY_CODE
         value: "593"
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENAI_MODEL
-        value: gpt-4o-mini
 
   - type: web
     name: creditbot-dashboard
