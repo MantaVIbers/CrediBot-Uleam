@@ -30,6 +30,25 @@ Verifica si la capa de IA está habilitada y configurada sin exponer la API key.
 }
 ```
 
+### `GET /health/whatsapp`
+
+Indica si Twilio/Meta está configurado (sin exponer secretos).
+
+**Respuesta (ejemplo):**
+
+```json
+{
+  "status": "ok",
+  "provider": "twilio",
+  "configured": true,
+  "missing_env": [],
+  "app_public_url_set": true,
+  "twilio_validate_signature": true,
+  "redis_configured": false,
+  "webhook_path": "/webhook/whatsapp"
+}
+```
+
 ## Simulador local
 
 ### `POST /simulate/message`
