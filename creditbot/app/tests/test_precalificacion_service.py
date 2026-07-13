@@ -17,7 +17,15 @@ from app.services import precalificacion_service as service
 CEDULA_VALIDA = "0912345675"
 
 
+def _stub_audit(monkeypatch):
+    """Neutraliza la auditoría para aislar la lógica del servicio."""
+    monkeypatch.setattr(
+        service.audit_repository, "log_tool_call", lambda *a, **k: None
+    )
+
+
 def _patch_profile(monkeypatch, profile):
+    _stub_audit(monkeypatch)
     monkeypatch.setattr(
         service.credit_profile_repository,
         "get_profile_by_cedula",
@@ -27,6 +35,8 @@ def _patch_profile(monkeypatch, profile):
 
 def test_cedula_invalida_no_consulta_perfil(monkeypatch):
     """Una cédula inválida corta el flujo antes de tocar el repositorio."""
+    _stub_audit(monkeypatch)
+
     def _boom(cedula):
         raise AssertionError("no debería consultar perfil con cédula inválida")
 
@@ -146,6 +156,29 @@ def test_sin_perfil_se_trata_como_sin_historial(monkeypatch):
     assert result["credit_score"] is None
     assert result["categoria"] == SCORE_REGULAR
     assert result["result"] == CREDIT_RESULT_OBSERVED
+
+
+def test_auditoria_registra_cedula_enmascarada(monkeypatch):
+    """Cada precalificación registra la tool con la cédula enmascarada."""
+    monkeypatch.setattr(
+        service.credit_profile_repository, "get_profile_by_cedula", lambda cedula: None
+    )
+    registros = []
+    monkeypatch.setattr(
+        service.audit_repository,
+        "log_tool_call",
+        lambda name, **kwargs: registros.append((name, kwargs)),
+    )
+
+    service.precalificar_por_cedula(CEDULA_VALIDA, 1000, 12, conversation_id="conv-9")
+
+    assert len(registros) == 1
+    name, kwargs = registros[0]
+    assert name == "precalificar_por_cedula"
+    assert kwargs["conversation_id"] == "conv-9"
+    assert kwargs["input_payload"]["cedula"] == "09******75"
+    assert "0912345675" not in str(kwargs["input_payload"])
+    assert kwargs["success"] is True
 
 
 def test_thin_file_perfil_marca_sin_historial(monkeypatch):

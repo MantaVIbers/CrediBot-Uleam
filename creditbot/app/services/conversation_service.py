@@ -324,6 +324,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     float(request["monthly_income"]),
                     int(request["term_months"]),
                     monto_solicitado=float(request["requested_amount"]),
+                    conversation_id=conversation_id,
                 )
                 credit_repository.save_result_v2(
                     request["id"],
