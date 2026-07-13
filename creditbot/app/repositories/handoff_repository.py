@@ -57,6 +57,23 @@ def get_open_handoff_cases() -> list[dict[str, Any]]:
     return response.data or []
 
 
+def get_open_handoff_case_by_user(user_id: str) -> dict[str, Any] | None:
+    """Retorna el caso abierto más reciente de un usuario, si existe."""
+    response = (
+        get_supabase_client()
+        .table("handoff_cases")
+        .select("*")
+        .eq("user_id", user_id)
+        .neq("status", "closed")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if response.data:
+        return response.data[0]
+    return None
+
+
 def get_handoff_case_by_id(case_id: str) -> dict[str, Any] | None:
     """Busca un caso de derivación por ID."""
     response = (

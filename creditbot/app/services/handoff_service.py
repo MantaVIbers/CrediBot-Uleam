@@ -2,7 +2,12 @@
 from datetime import datetime, timezone
 from typing import Any
 
-from app.repositories import handoff_repository, message_repository, user_repository
+from app.repositories import (
+    conversation_repository,
+    handoff_repository,
+    message_repository,
+    user_repository,
+)
 from app.services.whatsapp_service import WhatsAppServiceError, send_text_message
 
 REASON_LABELS = {
@@ -70,6 +75,11 @@ def get_open_handoff_cases() -> list[dict[str, Any]]:
     return handoff_repository.get_open_handoff_cases()
 
 
+def get_open_handoff_case_for_user(user_id: str) -> dict[str, Any] | None:
+    """Retorna el caso abierto más reciente de un usuario, si existe."""
+    return handoff_repository.get_open_handoff_case_by_user(user_id)
+
+
 def close_handoff_case(case_id: str) -> dict[str, Any]:
     """Cierra un caso de derivación."""
     case = handoff_repository.get_handoff_case_by_id(case_id)
@@ -77,7 +87,11 @@ def close_handoff_case(case_id: str) -> dict[str, Any]:
         raise ValueError("Caso de derivación no encontrado.")
     if case.get("status") == "closed":
         return case
-    return handoff_repository.close_handoff_case(case_id)
+    closed = handoff_repository.close_handoff_case(case_id)
+    conversation_id = case.get("conversation_id")
+    if conversation_id:
+        conversation_repository.finish_conversation(str(conversation_id))
+    return closed
 
 
 def reply_as_advisor(case_id: str, content: str) -> dict[str, Any]:

@@ -236,3 +236,36 @@ def test_reply_as_advisor_envia_whatsapp_y_persiste(monkeypatch):
 def test_reply_as_advisor_rechaza_vacio():
     with pytest.raises(ValueError, match="Escribe un mensaje"):
         handoff_service.reply_as_advisor("case-1", "   ")
+
+
+def test_close_handoff_case_finaliza_conversacion(monkeypatch):
+    monkeypatch.setattr(
+        handoff_service.handoff_repository,
+        "get_handoff_case_by_id",
+        lambda case_id: {
+            "id": case_id,
+            "status": "assigned",
+            "conversation_id": "conv-1",
+        },
+    )
+    monkeypatch.setattr(
+        handoff_service.handoff_repository,
+        "close_handoff_case",
+        lambda case_id: {"id": case_id, "status": "closed"},
+    )
+    finished = {}
+
+    def fake_finish(conversation_id):
+        finished["conversation_id"] = conversation_id
+        return {"id": conversation_id, "is_active": False}
+
+    monkeypatch.setattr(
+        handoff_service.conversation_repository,
+        "finish_conversation",
+        fake_finish,
+    )
+
+    result = handoff_service.close_handoff_case("case-1")
+
+    assert result["status"] == "closed"
+    assert finished["conversation_id"] == "conv-1"

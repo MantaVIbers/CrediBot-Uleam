@@ -1,5 +1,6 @@
 """Lógica principal del flujo conversacional del bot."""
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 from app.core.constants import (
@@ -27,6 +28,7 @@ from app.repositories import (
     conversation_repository,
     credit_profile_repository,
     credit_repository,
+    handoff_repository,
     message_repository,
     user_repository,
 )
@@ -123,7 +125,7 @@ def _request_handoff(
     reason: str,
     credit_request_id: str | None = None,
 ) -> str:
-    """Deriva la conversación a un asesor humano y finaliza la conversación activa."""
+    """Deriva la conversación a un asesor humano manteniendo el chat activo."""
     handoff_service.register_handoff(
         user_id=user_id,
         conversation_id=conversation_id,
@@ -133,9 +135,65 @@ def _request_handoff(
     _reset_validation_failures(conversation_id)
     conversation_repository.update_state(conversation_id, HANDOFF_REQUESTED)
     conversation_repository.update_last_message(conversation_id, response)
-    conversation_repository.finish_conversation(conversation_id)
     message_repository.save_outbound_message(conversation_id, user_id, response)
     return response
+
+
+def _append_handoff_transcript(case_id: str, case: dict[str, Any], text: str) -> None:
+    """Agrega un mensaje entrante al transcript del caso para el panel."""
+    transcript = case.get("transcript") if isinstance(case.get("transcript"), list) else []
+    transcript = list(transcript)
+    transcript.append(
+        {
+            "direction": "inbound",
+            "content": text,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    handoff_repository.update_handoff_case(case_id, transcript=transcript[-20:])
+
+
+def _process_open_handoff_message(
+    *,
+    conversation_id: str,
+    user_id: str,
+    text: str,
+    open_handoff: dict[str, Any],
+    raw_payload: dict[str, Any] | None,
+) -> str:
+    """Registra mensajes del cliente mientras un caso humano sigue abierto."""
+    message_repository.save_inbound_message(
+        conversation_id,
+        user_id,
+        text,
+        raw_payload=raw_payload,
+    )
+    _append_handoff_transcript(str(open_handoff["id"]), open_handoff, text)
+    response = message_service.handoff_waiting_message()
+    conversation_repository.update_state(conversation_id, HANDOFF_REQUESTED)
+    conversation_repository.update_last_message(conversation_id, response)
+    message_repository.save_outbound_message(conversation_id, user_id, response)
+    return response
+
+
+def _resolve_open_handoff_conversation(user_id: str) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """Retorna conversación y caso abiertos si el usuario tiene handoff activo."""
+    open_handoff = handoff_service.get_open_handoff_case_for_user(user_id)
+    if not open_handoff:
+        return None
+
+    conversation = conversation_repository.get_conversation_by_id(
+        str(open_handoff["conversation_id"])
+    )
+    if not conversation:
+        return None
+
+    if not conversation.get("is_active"):
+        conversation = conversation_repository.reactivate_conversation(
+            str(conversation["id"]),
+            HANDOFF_REQUESTED,
+        )
+    return conversation, open_handoff
 
 
 def _handle_validation_failure(
@@ -236,6 +294,17 @@ def _build_ai_context(
 def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = None) -> str:
     user = user_repository.get_or_create_user(phone)
     user_id = user["id"]
+
+    open_handoff_context = _resolve_open_handoff_conversation(user_id)
+    if open_handoff_context:
+        conversation, open_handoff = open_handoff_context
+        return _process_open_handoff_message(
+            conversation_id=str(conversation["id"]),
+            user_id=user_id,
+            text=text,
+            open_handoff=open_handoff,
+            raw_payload=raw_payload,
+        )
 
     conversation = conversation_repository.get_or_create_active_conversation(user_id)
     conversation_id = conversation["id"]

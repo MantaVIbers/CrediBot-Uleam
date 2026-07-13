@@ -277,6 +277,7 @@ def _render_config_status() -> None:
     )
 
 
+def _merge_case_data(
     casos: list[dict[str, Any]],
     solicitudes: list[dict[str, Any]],
     usuarios: list[dict[str, Any]],

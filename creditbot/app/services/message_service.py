@@ -242,6 +242,13 @@ def handoff_message() -> str:
     )
 
 
+def handoff_waiting_message() -> str:
+    """Confirma recepción mientras el cliente espera respuesta del asesor."""
+    return (
+        "Recibimos tu mensaje. Un asesor humano te responderá pronto por este mismo chat."
+    )
+
+
 def finished_message() -> str:
     """Mensaje de despedida al finalizar la conversación."""
     return "Gracias por usar CrediBot. Si necesitas algo más, escríbenos de nuevo."

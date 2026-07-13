@@ -378,3 +378,75 @@ def test_consent_declined_finishes_conversation(
     assert "autorización" in reply.lower()
     mock_update_state.assert_called_once_with(CONVERSATION_ID, FINISHED)
     mock_finish.assert_called_once_with(CONVERSATION_ID)
+
+
+@patch("app.services.conversation_service.handoff_service.register_handoff")
+@patch("app.services.conversation_service.conversation_repository.finish_conversation")
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_handoff_request_keeps_conversation_active(
+    mock_get_user,
+    mock_get_conversation,
+    mock_update_state,
+    mock_update_last_message,
+    mock_save_inbound,
+    mock_save_outbound,
+    mock_finish,
+    mock_register_handoff,
+):
+    mock_get_user.return_value = _base_user()
+    mock_get_conversation.return_value = _base_conversation(MENU)
+
+    reply = process_message("593999999999", "3")
+
+    assert "asesor humano" in reply.lower()
+    mock_register_handoff.assert_called_once()
+    mock_update_state.assert_called_with(CONVERSATION_ID, "HANDOFF_REQUESTED")
+    mock_finish.assert_not_called()
+
+
+@patch("app.services.conversation_service.handoff_repository.update_handoff_case")
+@patch("app.services.conversation_service.handoff_service.get_open_handoff_case_for_user")
+@patch("app.services.conversation_service.conversation_repository.reactivate_conversation")
+@patch("app.services.conversation_service.conversation_repository.get_conversation_by_id")
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_open_handoff_message_stays_on_same_conversation(
+    mock_get_user,
+    mock_get_conversation,
+    mock_update_state,
+    mock_update_last_message,
+    mock_save_inbound,
+    mock_save_outbound,
+    mock_get_conversation_by_id,
+    mock_reactivate,
+    mock_get_open_handoff,
+    mock_update_handoff_case,
+):
+    mock_get_user.return_value = _base_user()
+    mock_get_open_handoff.return_value = {
+        "id": "case-1",
+        "conversation_id": CONVERSATION_ID,
+        "transcript": [],
+    }
+    mock_get_conversation_by_id.return_value = {
+        **_base_conversation("HANDOFF_REQUESTED"),
+        "is_active": False,
+    }
+    mock_reactivate.return_value = _base_conversation("HANDOFF_REQUESTED")
+
+    reply = process_message("593999999999", "Tengo otra duda")
+
+    assert "asesor humano" in reply.lower()
+    mock_get_conversation.assert_not_called()
+    mock_reactivate.assert_called_once_with(CONVERSATION_ID, "HANDOFF_REQUESTED")
+    mock_save_inbound.assert_called_once()
+    mock_update_handoff_case.assert_called_once()
