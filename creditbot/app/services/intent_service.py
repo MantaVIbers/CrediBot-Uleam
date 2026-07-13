@@ -59,6 +59,31 @@ def looks_like_numeric_answer(value: str) -> bool:
     )
 
 
+def is_restart_command(value: str) -> bool:
+    """Detecta cancelar / reiniciar / volver al menú."""
+    text = _normalize(value)
+    if text in {
+        "0",
+        "cancelar",
+        "cancela",
+        "reiniciar",
+        "reinicio",
+        "menu",
+        "inicio",
+        "salir",
+        "abortar",
+        "empezar",
+    }:
+        return True
+    return bool(
+        re.search(
+            r"\b(?:cancelar|cancela|reiniciar|reinicio|abortar|salir|"
+            r"empezar de nuevo|volver al menu|volver al inicio)\b",
+            text,
+        )
+    )
+
+
 def is_policy_question(value: str) -> bool:
     """Detecta preguntas informativas que deben responderse con RAG."""
     if looks_like_numeric_answer(value):

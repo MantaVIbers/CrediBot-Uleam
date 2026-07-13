@@ -228,6 +228,108 @@ def test_contains_handoff_keyword():
     assert _contains_handoff_keyword("hablar con una persona") is True
 
 
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kw: kw["base_reply"])
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.finish_conversation")
+@patch(
+    "app.services.conversation_service.conversation_repository.get_or_create_active_conversation",
+    return_value={"id": CONVERSATION_ID, "current_state": MENU, "is_active": True},
+)
+@patch(
+    "app.services.conversation_service.user_repository.get_or_create_user",
+    return_value={"id": USER_ID, "phone": "593999999999"},
+)
+def test_menu_opcion_2_devuelve_informacion(
+    _mock_user,
+    mock_get_conv,
+    _mock_finish,
+    mock_update_state,
+    _mock_last,
+    _mock_in,
+    _mock_out,
+    _mock_ai,
+):
+    mock_get_conv.return_value = {
+        "id": CONVERSATION_ID,
+        "current_state": MENU,
+        "is_active": True,
+    }
+    reply = process_message("593999999999", "2")
+    assert "información general" in reply.lower() or "Información general" in reply
+    assert "requisitos" in reply.lower() or "precalific" in reply.lower()
+    mock_update_state.assert_not_called()
+
+
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kw: kw["base_reply"])
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.finish_conversation")
+@patch(
+    "app.services.conversation_service.conversation_repository.get_or_create_active_conversation",
+    return_value={"id": CONVERSATION_ID, "current_state": ASK_PURPOSE, "is_active": True},
+)
+@patch(
+    "app.services.conversation_service.user_repository.get_or_create_user",
+    return_value={"id": USER_ID, "phone": "593999999999"},
+)
+def test_cancelar_reinicia_conversacion(
+    _mock_user,
+    mock_get_conv,
+    mock_finish,
+    mock_update_state,
+    _mock_last,
+    _mock_in,
+    _mock_out,
+    _mock_ai,
+):
+    mock_get_conv.side_effect = [
+        {"id": CONVERSATION_ID, "current_state": ASK_PURPOSE, "is_active": True},
+        {"id": "conv-new", "current_state": START, "is_active": True},
+    ]
+    reply = process_message("593999999999", "cancelar")
+    assert "reinici" in reply.lower() or "cancel" in reply.lower()
+    assert "1. Precalificar" in reply or "precalificar" in reply.lower()
+    mock_finish.assert_called_once_with(CONVERSATION_ID)
+    mock_update_state.assert_called_with("conv-new", MENU)
+
+
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kw: kw["base_reply"])
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch(
+    "app.services.conversation_service.conversation_repository.get_or_create_active_conversation",
+    return_value={"id": CONVERSATION_ID, "current_state": ASK_PURPOSE, "is_active": True},
+)
+@patch(
+    "app.services.conversation_service.user_repository.get_or_create_user",
+    return_value={"id": USER_ID, "phone": "593999999999", "full_name": "Ana"},
+)
+def test_destino_hola_se_rechaza(
+    _mock_user,
+    mock_get_conv,
+    mock_update_state,
+    _mock_last,
+    _mock_in,
+    _mock_out,
+    _mock_ai,
+):
+    mock_get_conv.return_value = {
+        "id": CONVERSATION_ID,
+        "current_state": ASK_PURPOSE,
+        "is_active": True,
+    }
+    reply = process_message("593999999999", "hola")
+    assert "destino" in reply.lower() or "estudios" in reply.lower()
+    mock_update_state.assert_not_called()
+
+
 @patch(
     "app.services.conversation_service.openai_agent.render_reply",
     side_effect=lambda **kwargs: kwargs["base_reply"],

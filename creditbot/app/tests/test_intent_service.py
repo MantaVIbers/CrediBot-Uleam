@@ -42,3 +42,12 @@ def test_handoff_hint_no_se_duplica():
     message = message_service.with_handoff_hint("Indica tu ingreso mensual")
     assert "asesor" in message.lower()
     assert message_service.with_handoff_hint(message) == message
+
+
+def test_detecta_comando_reinicio():
+    assert intent_service.is_restart_command("cancelar") is True
+    assert intent_service.is_restart_command("0") is True
+    assert intent_service.is_restart_command("reiniciar") is True
+    assert intent_service.is_restart_command("volver al menú") is True
+    assert intent_service.is_restart_command("estudios") is False
+    assert intent_service.is_restart_command("1") is False

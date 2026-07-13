@@ -70,7 +70,16 @@ Bot: Resultado: Preaprobado.
      Monto máximo / cuota / TEA...
 ```
 
-## Verificación temprana (VERIFY_IDENTITY)
+## Cancelar / reiniciar
+
+En cualquier momento (excepto al inicio) el usuario puede escribir:
+
+- `cancelar`
+- `reiniciar`
+- `0`
+- `salir` / `volver al menú`
+
+Eso cierra la conversación actual y vuelve a mostrar el menú principal.
 
 Tras una cédula válida, el backend (no el LLM):
 

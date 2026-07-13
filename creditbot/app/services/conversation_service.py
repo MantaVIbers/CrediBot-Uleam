@@ -168,6 +168,20 @@ def _process_open_handoff_message(
         text,
         raw_payload=raw_payload,
     )
+
+    if intent_service.is_restart_command(text):
+        handoff_service.close_handoff_case(str(open_handoff["id"]))
+        conversation_repository.finish_conversation(conversation_id)
+        _reset_validation_failures(conversation_id)
+        new_conversation = conversation_repository.get_or_create_active_conversation(user_id)
+        new_id = new_conversation["id"]
+        response = message_service.restart_message()
+        conversation_repository.update_state(new_id, MENU)
+        response = message_service.with_handoff_hint(response)
+        conversation_repository.update_last_message(new_id, response)
+        message_repository.save_outbound_message(new_id, user_id, response)
+        return response
+
     _append_handoff_transcript(str(open_handoff["id"]), open_handoff, text)
     response = message_service.handoff_waiting_message()
     conversation_repository.update_state(conversation_id, HANDOFF_REQUESTED)
@@ -314,6 +328,33 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
         conversation_id, user_id, text, raw_payload=raw_payload
     )
 
+    if intent_service.is_restart_command(text) and state not in {
+        START,
+        FINISHED,
+        NOT_ELIGIBLE,
+    }:
+        conversation_repository.finish_conversation(conversation_id)
+        _reset_validation_failures(conversation_id)
+        new_conversation = conversation_repository.get_or_create_active_conversation(user_id)
+        conversation_id = new_conversation["id"]
+        response = message_service.restart_message()
+        conversation_repository.update_state(conversation_id, MENU)
+        response = message_service.with_handoff_hint(response)
+        response = openai_agent.render_reply(
+            base_reply=response,
+            state=MENU,
+            user_message=text,
+            context=_build_ai_context(
+                conversation_id=conversation_id,
+                state_before=state,
+                state_after=MENU,
+                rag_chunks=[],
+            ),
+        )
+        conversation_repository.update_last_message(conversation_id, response)
+        message_repository.save_outbound_message(conversation_id, user_id, response)
+        return response
+
     normalized_text = text.strip().lower()
     if state not in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE} and _contains_handoff_keyword(
         normalized_text
@@ -360,7 +401,23 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             next_state = CONSENT
         elif menu_option == "2":
             _reset_validation_failures(conversation_id)
-            response, rag_chunks = _policy_response_for_state(text, MENU)
+            # "2" no sirve como query RAG; usamos resumen + políticas generales.
+            _, rag_chunks = rag_service.build_policy_answer(
+                "requisitos tasas plazos montos documentos score"
+            )
+            response = message_service.general_info_message()
+            if rag_chunks:
+                bullets = []
+                for chunk in rag_chunks[:2]:
+                    summary = " ".join(chunk.content.split())
+                    if len(summary) > 180:
+                        summary = summary[:177].rstrip() + "..."
+                    bullets.append(f"- {chunk.title}: {summary}")
+                response = (
+                    message_service.general_info_message()
+                    + "\n\nDetalle de políticas:\n"
+                    + "\n".join(bullets)
+                )
             next_state = MENU
         elif menu_option == "3":
             return _request_handoff(

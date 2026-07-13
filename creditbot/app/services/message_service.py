@@ -16,7 +16,17 @@ def welcome_message() -> str:
         "Hola, soy CrediBot. ¿Qué deseas hacer?\n"
         "1. Precalificar crédito\n"
         "2. Información general\n"
-        "3. Hablar con asesor"
+        "3. Hablar con asesor\n"
+        "\n"
+        "En cualquier momento puedes escribir *cancelar* para reiniciar el chat."
+    )
+
+
+def restart_message() -> str:
+    """Confirma reinicio del flujo y vuelve a mostrar el menú."""
+    return (
+        "Listo, cancelé el proceso anterior y reinicié la conversación.\n\n"
+        + welcome_message()
     )
 
 
@@ -109,7 +119,10 @@ def ask_purpose_message() -> str:
 
 def invalid_purpose_message() -> str:
     """Mensaje de error para destino de crédito inválido."""
-    return "Indica brevemente el destino del crédito, por ejemplo: estudios o negocio."
+    return (
+        "No entendí el destino del crédito. Indica algo concreto, por ejemplo: "
+        "estudios, negocio, consumo, emergencia, vivienda o salud."
+    )
 
 
 def ask_term_message() -> str:
@@ -153,10 +166,16 @@ def invalid_confirmation_message() -> str:
 
 
 def general_info_message() -> str:
-    """Mensaje informativo con el menú principal."""
+    """Resumen de información general cuando el usuario elige la opción 2."""
     return (
-        "CrediBot te ayuda a precalificar una solicitud de crédito de forma rápida "
-        "por WhatsApp. Selecciona una opción del menú:\n"
+        "Información general de CrediBot (MVP académico):\n"
+        "- Precalificamos crédito por WhatsApp con datos simulados.\n"
+        "- Necesitas autorizar la consulta, cédula válida, destino, monto, "
+        "plazo (3 a 36 meses) e ingreso mensual.\n"
+        "- Resultados posibles: preaprobado, observado o no cumple.\n"
+        "- Puedes pedir un asesor en cualquier momento.\n\n"
+        "Escribe tu duda (por ejemplo: requisitos, tasas, plazos o documentos) "
+        "o elige una opción del menú:\n"
         "1. Precalificar crédito\n"
         "2. Información general\n"
         "3. Hablar con asesor"

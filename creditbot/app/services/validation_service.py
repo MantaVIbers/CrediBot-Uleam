@@ -63,11 +63,83 @@ def validate_amount(value: str) -> tuple[bool, str | None]:
 
 
 def validate_purpose(value: str) -> tuple[bool, str | None]:
-    """Valida que el destino del crédito tenga una descripción mínima."""
-    cleaned = value.strip()
-    if len(cleaned) < 3:
+    """Valida que el destino del crédito sea concreto (no saludos ni basura)."""
+    import unicodedata
+
+    cleaned = (value or "").strip()
+    if len(cleaned) < 4:
         return False, "Indica brevemente para qué necesitas el crédito."
-    return True, None
+
+    text = unicodedata.normalize("NFKD", cleaned)
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    text = text.lower().strip()
+
+    rejected = {
+        "hola",
+        "hello",
+        "hi",
+        "ok",
+        "okay",
+        "si",
+        "no",
+        "gracias",
+        "asesor",
+        "humano",
+        "menu",
+        "cancelar",
+        "reiniciar",
+        "info",
+        "informacion",
+        "1",
+        "2",
+        "3",
+        "0",
+        "test",
+        "prueba",
+        "nada",
+        "nose",
+        "no se",
+    }
+    if text in rejected:
+        return False, "Indica un destino concreto del crédito."
+
+    purpose_keywords = {
+        "estudio",
+        "estudios",
+        "negocio",
+        "consumo",
+        "emergencia",
+        "vivienda",
+        "casa",
+        "vehiculo",
+        "auto",
+        "carro",
+        "salud",
+        "medico",
+        "viaje",
+        "deuda",
+        "refinanci",
+        "inversion",
+        "capital",
+        "trabajo",
+        "empresa",
+        "reparacion",
+        "remodelacion",
+        "educacion",
+        "universidad",
+        "matrimonio",
+        "personal",
+    }
+    if any(keyword in text for keyword in purpose_keywords):
+        return True, None
+
+    # Texto libre razonable: letras suficientes y no solo saludo/basura.
+    tokens = set(re.findall(r"[a-z0-9]+", text))
+    if tokens and tokens <= rejected:
+        return False, "Indica un destino concreto del crédito."
+    if len(cleaned) >= 5 and re.search(r"[a-zA-ZáéíóúÁÉÍÓÚñÑ]", cleaned):
+        return True, None
+    return False, "Indica un destino concreto del crédito."
 
 
 def validate_term(value: str) -> tuple[bool, str | None]:

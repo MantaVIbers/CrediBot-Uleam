@@ -79,8 +79,16 @@ def test_validate_purpose_correct():
 
 
 def test_validate_purpose_invalid():
-    """Destino del crédito demasiado corto."""
+    """Destino del crédito demasiado corto o sin sentido."""
     is_valid, error = validate_purpose("x")
+    assert is_valid is False
+    assert error is not None
+
+    is_valid, error = validate_purpose("hola")
+    assert is_valid is False
+    assert error is not None
+
+    is_valid, error = validate_purpose("ok")
     assert is_valid is False
     assert error is not None
 
