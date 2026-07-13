@@ -1,0 +1,34 @@
+%%{init: {"theme": "neutral"}}%%
+stateDiagram-v2
+    [*] --> START
+    START --> MENU : primer mensaje
+
+    MENU --> CONSENT : opción 1 precalificar
+    MENU --> MENU : opción 2 información (RAG)
+    MENU --> HANDOFF_REQUESTED : opción 3 / palabra clave
+
+    CONSENT --> ASK_CEDULA : autoriza (1)
+    CONSENT --> FINISHED : no autoriza (2)
+
+    ASK_CEDULA --> ASK_CEDULA : cédula inválida o no encontrada
+    ASK_CEDULA --> NOT_ELIGIBLE : score alto riesgo / mora / lista negra
+    ASK_CEDULA --> ASK_PURPOSE : VERIFY_IDENTITY OK
+
+    ASK_PURPOSE --> ASK_AMOUNT : destino válido
+    ASK_AMOUNT --> ASK_TERM : monto válido
+    ASK_TERM --> ASK_INCOME : plazo válido
+    ASK_INCOME --> CONFIRM_DATA : ingreso válido
+
+    CONFIRM_DATA --> SHOW_RESULT : confirma (1) + cálculo
+    CONFIRM_DATA --> ASK_PURPOSE : corrige (2)
+
+    SHOW_RESULT --> FINISHED : cierre
+    NOT_ELIGIBLE --> [*]
+    HANDOFF_REQUESTED --> [*]
+    FINISHED --> [*]
+
+    note right of ASK_CEDULA
+      Tras validar formato se consulta
+      credit_profiles y verificar_elegibilidad
+      (VERIFY_IDENTITY en el mismo turno).
+    end note

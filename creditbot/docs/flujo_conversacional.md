@@ -1,4 +1,6 @@
-# Flujo conversacional de CrediBot
+# Flujo conversacional de CrediBot (v2)
+
+Diagrama Mermaid: [`docs/diagramas/flujo_estados.mmd`](diagramas/flujo_estados.mmd)
 
 ## Estados
 
@@ -6,19 +8,19 @@
 |---|---|
 | `START` | Inicio de conversación |
 | `MENU` | Menú principal |
-| `ASK_NAME` | Solicita nombre |
-| `ASK_CEDULA` | Solicita cédula |
-| `CONSENT` | Solicita autorización para consultar perfil |
-| `ASK_PURPOSE` | Solicita destino o producto del crédito |
-| `ASK_AMOUNT` | Solicita monto |
-| `ASK_TERM` | Solicita plazo |
-| `ASK_INCOME` | Solicita ingreso |
+| `CONSENT` | Autorización para consultar historial (antes de la cédula) |
+| `ASK_CEDULA` | Solicita cédula + verificación de identidad/elegibilidad |
+| `ASK_PURPOSE` | Destino del crédito |
+| `ASK_AMOUNT` | Monto solicitado |
+| `ASK_TERM` | Plazo en meses |
+| `ASK_INCOME` | Ingreso mensual |
 | `CONFIRM_DATA` | Confirma resumen |
-| `SHOW_RESULT` | Muestra resultado |
+| `SHOW_RESULT` | Muestra resultado de precalificación |
+| `NOT_ELIGIBLE` | No puede continuar (score/mora/lista negra) |
 | `HANDOFF_REQUESTED` | Derivado a asesor |
 | `FINISHED` | Conversación cerrada |
 
-## Flujo esperado
+## Flujo esperado (alineado a requisitos v2)
 
 ```text
 Usuario: Hola
@@ -28,21 +30,21 @@ Bot: Hola, soy CrediBot. ¿Qué deseas hacer?
      3. Hablar con asesor
 
 Usuario: 1
-Bot: Perfecto. Indícame tu nombre completo.
-
-Usuario: Carlos Ortiz
-Bot: Gracias. Ahora indícame tu número de cédula (10 dígitos) para consultar tu perfil crediticio.
-
-Usuario: 0912345675
-Bot: Para precalificarte necesito tu autorización para consultar tu historial crediticio.
+Bot: Antes de continuar necesito tu autorización para consultar tu
+     historial crediticio (datos simulados). ¿Autorizas?
      1. Sí, autorizo
      2. No autorizo
 
-Usuario: Sí autorizo
-Bot: ¿Para qué necesitas el crédito? Por ejemplo: estudios, negocio, consumo o emergencia.
+Usuario: 1
+Bot: Perfecto. Indícame tu número de cédula (10 dígitos).
+
+Usuario: 0912345675
+Bot: Gracias, María González López. Verificamos tu identidad y tu perfil
+     está en categoría aceptable (score 720). Podemos continuar.
+     ¿Para qué necesitas el crédito?
 
 Usuario: estudios
-Bot: ¿Qué monto deseas solicitar?
+Bot: Gracias, María González López. ¿Qué monto deseas solicitar?
 
 Usuario: 500
 Bot: ¿En cuántos meses deseas pagar el crédito?
@@ -52,7 +54,7 @@ Bot: ¿Cuál es tu ingreso mensual aproximado?
 
 Usuario: 700
 Bot: Resumen:
-     Nombre: Carlos Ortiz
+     Nombre: María González López
      Cédula: 09******75
      Destino: estudios
      Monto: $500.00
@@ -64,62 +66,24 @@ Bot: Resumen:
 
 Usuario: 1
 Bot: Resultado: Preaprobado.
-     Cuota estimada: $41.67
-     Un asesor puede continuar con la validación final.
+     Categoría de score: aceptable
+     Monto máximo / cuota / TEA...
 ```
 
-## Regla de negocio v2
+## Verificación temprana (VERIFY_IDENTITY)
 
-```text
-perfil = consulta por cédula en credit_profiles
-capacidad_pago = ingreso_neto * 0.35 - cuotas_actuales
-monto_maximo = menor entre techo por score y monto por capacidad de pago
-cuota_estimada = amortización francesa con TEA por categoría
-```
+Tras una cédula válida, el backend (no el LLM):
 
-| Condición | Resultado |
-|---|---|
-| Score excelente/aceptable y cuota dentro de capacidad | `preaprobado` |
-| Score regular o caso revisable | `observado` |
-| Alto riesgo, mora activa mayor a 30 días o lista negra | `no_cumple` |
+1. Busca el perfil en `credit_profiles`.
+2. Si no existe → pide reintentar.
+3. Aplica `verificar_elegibilidad` (score Ecuador, mora, lista negra).
+4. Si no elegible → `NOT_ELIGIBLE` con explicación.
+5. Si elegible → toma el nombre del perfil y continúa a `ASK_PURPOSE`.
 
-## Intención natural e IA
+## Regla de negocio
 
-El menú acepta números y frases como `quiero un crédito`, `necesito información`
-o `hablar con una persona`. La IA de OpenAI redacta la respuesta final cuando está
-configurada, pero las reglas de negocio y los estados los controla el backend.
-El modelo recibe solo contexto seguro: estado actual, paso pendiente y fragmentos
-RAG recuperados.
+Ver `app/domain/credit_rules.py` (escala Ecuador 1–999, TEA por categoría, cuota francesa).
 
-## RAG de políticas
+## Derivación humana
 
-Las preguntas sobre requisitos, documentos, tasas, plazos o condiciones se
-responden con información recuperada desde `docs/policies/credito_mvp.md`.
-Si el usuario hace una pregunta informativa mientras está entregando datos, el
-bot responde y conserva el estado actual para no perder el flujo.
-
-## Derivación a asesor
-
-Se crea un caso en `handoff_cases` cuando:
-
-- El usuario elige la opción 3 del menú
-- Escribe palabras como `asesor`, `humano`, `persona` o `agente`
-- El resultado queda como `observado`
-- Falla 3 veces con datos inválidos
-
-Cada caso incluye un resumen para el asesor y un transcript con los últimos mensajes
-guardados. El historial completo se mantiene en `messages` para seguimiento posterior.
-
-## Cómo probar el flujo
-
-### Opción 1: simulador local
-
-Usa `POST /simulate/message` cambiando el campo `message` en cada paso.
-
-### Opción 2: Twilio WhatsApp Sandbox
-
-1. Configura el webhook en Twilio Console.
-2. Une tu número al Sandbox.
-3. Escribe desde WhatsApp al número de prueba de Twilio.
-
-Guía: [`twilio_setup.md`](twilio_setup.md)
+Siempre disponible: menú opción 3, palabra `asesor`, o resultado `observado`.

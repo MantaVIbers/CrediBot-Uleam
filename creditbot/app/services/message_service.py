@@ -26,9 +26,9 @@ def ask_name_message() -> str:
 
 
 def ask_cedula_message() -> str:
-    """Solicita la cédula para consultar el perfil crediticio."""
+    """Solicita la cédula tras el consentimiento."""
     return (
-        "Gracias. Ahora indícame tu número de cédula (10 dígitos) "
+        "Perfecto. Indícame tu número de cédula (10 dígitos) "
         "para consultar tu perfil crediticio."
     )
 
@@ -36,7 +36,7 @@ def ask_cedula_message() -> str:
 def ask_consent_message() -> str:
     """Solicita consentimiento para consultar el buró crediticio (RF-08)."""
     return (
-        "Para precalificarte necesito tu autorización para consultar tu "
+        "Antes de continuar necesito tu autorización para consultar tu "
         "historial crediticio (datos simulados con fines académicos). "
         "¿Autorizas la consulta?\n"
         "1. Sí, autorizo\n"
@@ -57,6 +57,42 @@ def invalid_cedula_message(reason: str | None = None) -> str:
     """Mensaje de error para cédula inválida, con el motivo si está disponible."""
     detail = f" {reason}" if reason else ""
     return f"La cédula ingresada no es válida.{detail} Inténtalo de nuevo."
+
+
+def cedula_not_found_message() -> str:
+    """Cédula válida en formato pero inexistente en el buró simulado."""
+    return (
+        "No encontramos un perfil crediticio asociado a esa cédula en nuestra "
+        "base de datos de prueba. Verifica el número o escribe 'asesor'."
+    )
+
+
+def identity_verified_message(name: str, categoria: str, score: int | None = None) -> str:
+    """Confirma identidad/elegibilidad y avanza a la precalificación."""
+    score_line = f" (score {score})" if score is not None else ""
+    return (
+        f"Gracias, {name}. Verificamos tu identidad y tu perfil crediticio "
+        f"está en categoría {categoria}{score_line}. "
+        "Podemos continuar con la precalificación."
+    )
+
+
+def not_eligible_message(name: str | None, motivo: str | None, categoria: str | None = None) -> str:
+    """Explica por qué no puede continuar la precalificación automática."""
+    motivos = {
+        "lista_negra": "Tu perfil figura con restricciones que impiden continuar.",
+        "mora_activa": "Registras mora activa que impide la precalificación automática.",
+        "score_alto_riesgo": "Tu score se encuentra en la categoría de alto riesgo.",
+        "sin_perfil": "No encontramos historial crediticio asociado a tu cédula.",
+    }
+    saludo = f"{name}, " if name else ""
+    detalle = motivos.get(str(motivo), "Por ahora no cumples las condiciones básicas.")
+    cat = f" Categoría: {categoria}." if categoria else ""
+    return (
+        f"{saludo}no podemos continuar con la precalificación automática. "
+        f"{detalle}{cat}\n"
+        "Puedes escribir 'asesor' para hablar con una persona."
+    )
 
 
 def ask_amount_message(name: str | None = None) -> str:
