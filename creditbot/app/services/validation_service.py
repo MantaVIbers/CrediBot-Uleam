@@ -46,6 +46,14 @@ def validate_amount(value: str) -> tuple[bool, str | None]:
     return True, None
 
 
+def validate_purpose(value: str) -> tuple[bool, str | None]:
+    """Valida que el destino del crédito tenga una descripción mínima."""
+    cleaned = value.strip()
+    if len(cleaned) < 3:
+        return False, "Indica brevemente para qué necesitas el crédito."
+    return True, None
+
+
 def validate_term(value: str) -> tuple[bool, str | None]:
     """Valida que el plazo sea un entero entre 3 y 36 meses."""
     try:

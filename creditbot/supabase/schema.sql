@@ -123,6 +123,7 @@ create index if not exists tool_audit_logs_conversation_idx
 
 -- Campos adicionales de la solicitud para el flujo v2 (score, categoría, monto máximo).
 alter table credit_requests add column if not exists cedula varchar(10);
+alter table credit_requests add column if not exists loan_purpose text;
 alter table credit_requests add column if not exists credit_score integer;
 alter table credit_requests add column if not exists score_category text;
 alter table credit_requests add column if not exists max_amount numeric(12, 2);

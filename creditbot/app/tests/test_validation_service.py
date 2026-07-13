@@ -5,6 +5,7 @@ from app.services.validation_service import (
     validate_income,
     validate_menu_option,
     validate_name,
+    validate_purpose,
     validate_term,
 )
 
@@ -57,6 +58,20 @@ def test_validate_income_correct():
     is_valid, error = validate_income("700")
     assert is_valid is True
     assert error is None
+
+
+def test_validate_purpose_correct():
+    """Destino del crédito válido."""
+    is_valid, error = validate_purpose("estudios")
+    assert is_valid is True
+    assert error is None
+
+
+def test_validate_purpose_invalid():
+    """Destino del crédito demasiado corto."""
+    is_valid, error = validate_purpose("x")
+    assert is_valid is False
+    assert error is not None
 
 
 def test_validate_menu_option_correct():

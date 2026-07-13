@@ -107,6 +107,23 @@ def update_cedula(request_id: str, cedula: str) -> dict[str, Any]:
     return response.data[0]
 
 
+def update_purpose(request_id: str, loan_purpose: str) -> dict[str, Any]:
+    """Guarda el destino o producto de interés de la solicitud."""
+    response = (
+        get_supabase_client()
+        .table("credit_requests")
+        .update(
+            {
+                "loan_purpose": loan_purpose,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        .eq("id", request_id)
+        .execute()
+    )
+    return response.data[0]
+
+
 def save_result(
     request_id: str,
     estimated_payment: float,

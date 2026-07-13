@@ -66,6 +66,16 @@ def ask_amount_message(name: str | None = None) -> str:
     return "¿Qué monto deseas solicitar?"
 
 
+def ask_purpose_message() -> str:
+    """Solicita el destino o producto de interés del crédito."""
+    return "¿Para qué necesitas el crédito? Por ejemplo: estudios, negocio, consumo o emergencia."
+
+
+def invalid_purpose_message() -> str:
+    """Mensaje de error para destino de crédito inválido."""
+    return "Indica brevemente el destino del crédito, por ejemplo: estudios o negocio."
+
+
 def ask_term_message() -> str:
     """Solicita el plazo en meses."""
     return "¿En cuántos meses deseas pagar el crédito?"
@@ -124,6 +134,7 @@ def confirm_data_message(data: dict) -> str:
         "Resumen:\n"
         f"Nombre: {data['name']}\n"
         f"{cedula_line}"
+        f"Destino: {data['purpose']}\n"
         f"Monto: ${data['amount']:.2f}\n"
         f"Plazo: {data['term']} meses\n"
         f"Ingreso: ${data['income']:.2f}\n"

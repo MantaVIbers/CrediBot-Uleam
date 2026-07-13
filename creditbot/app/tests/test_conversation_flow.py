@@ -6,6 +6,7 @@ from app.core.constants import (
     ASK_CEDULA,
     ASK_INCOME,
     ASK_NAME,
+    ASK_PURPOSE,
     ASK_TERM,
     CONFIRM_DATA,
     CONSENT,
@@ -48,6 +49,7 @@ def _draft_request(**overrides):
         "user_id": USER_ID,
         "conversation_id": CONVERSATION_ID,
         "cedula": None,
+        "loan_purpose": None,
         "requested_amount": None,
         "term_months": None,
         "monthly_income": None,
@@ -76,6 +78,7 @@ def _preapproved_evaluation():
 @patch("app.services.conversation_service.precalificacion_service.precalificar_por_cedula")
 @patch("app.services.conversation_service.credit_repository.save_result_v2")
 @patch("app.services.conversation_service.user_repository.update_cedula_consent")
+@patch("app.services.conversation_service.credit_repository.update_purpose")
 @patch("app.services.conversation_service.credit_repository.update_cedula")
 @patch("app.services.conversation_service.message_repository.save_outbound_message")
 @patch("app.services.conversation_service.message_repository.save_inbound_message")
@@ -95,6 +98,7 @@ def test_conversation_flow_basic(
     mock_save_inbound,
     mock_save_outbound,
     mock_update_cedula,
+    mock_update_purpose,
     mock_update_cedula_consent,
     mock_save_result_v2,
     mock_precalificar,
@@ -109,6 +113,7 @@ def test_conversation_flow_basic(
         ASK_NAME,
         ASK_CEDULA,
         CONSENT,
+        ASK_PURPOSE,
         ASK_AMOUNT,
         ASK_TERM,
         ASK_INCOME,
@@ -128,11 +133,12 @@ def test_conversation_flow_basic(
     mock_get_draft.side_effect = [
         _draft_request(),                                                        # ASK_CEDULA
         _draft_request(cedula=CEDULA),                                           # CONSENT (lee cédula persistida)
-        _draft_request(cedula=CEDULA),                                           # ASK_AMOUNT
-        _draft_request(cedula=CEDULA, requested_amount=500),                     # ASK_TERM
-        _draft_request(cedula=CEDULA, requested_amount=500, term_months=12),     # ASK_INCOME (lectura)
-        _draft_request(cedula=CEDULA, requested_amount=500, term_months=12, monthly_income=700),  # ASK_INCOME (relectura)
-        _draft_request(cedula=CEDULA, requested_amount=500, term_months=12, monthly_income=700),  # CONFIRM_DATA
+        _draft_request(cedula=CEDULA),                                           # ASK_PURPOSE
+        _draft_request(cedula=CEDULA, loan_purpose="estudios"),                  # ASK_AMOUNT
+        _draft_request(cedula=CEDULA, loan_purpose="estudios", requested_amount=500),  # ASK_TERM
+        _draft_request(cedula=CEDULA, loan_purpose="estudios", requested_amount=500, term_months=12),  # ASK_INCOME (lectura)
+        _draft_request(cedula=CEDULA, loan_purpose="estudios", requested_amount=500, term_months=12, monthly_income=700),  # ASK_INCOME (relectura)
+        _draft_request(cedula=CEDULA, loan_purpose="estudios", requested_amount=500, term_months=12, monthly_income=700),  # CONFIRM_DATA
     ]
     mock_precalificar.return_value = _preapproved_evaluation()
 
@@ -166,8 +172,12 @@ def test_conversation_flow_basic(
         mock_update_cedula.assert_called_once()
 
         reply_consent = process_message("593999999999", "1")
-        assert "monto" in reply_consent.lower()
+        assert "para qué" in reply_consent.lower()
         mock_update_cedula_consent.assert_called_once()
+
+        reply_purpose = process_message("593999999999", "estudios")
+        assert "monto" in reply_purpose.lower()
+        mock_update_purpose.assert_called_once()
 
         reply_amount = process_message("593999999999", "500")
         assert "meses" in reply_amount.lower()
@@ -184,8 +194,8 @@ def test_conversation_flow_basic(
         mock_precalificar.assert_called_once()
         mock_save_result_v2.assert_called_once()
 
-    assert mock_save_inbound.call_count == 9
-    assert mock_save_outbound.call_count == 9
+    assert mock_save_inbound.call_count == 10
+    assert mock_save_outbound.call_count == 10
 
 
 def test_contains_handoff_keyword():

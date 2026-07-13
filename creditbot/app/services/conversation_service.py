@@ -7,6 +7,7 @@ from app.core.constants import (
     ASK_CEDULA,
     ASK_INCOME,
     ASK_NAME,
+    ASK_PURPOSE,
     ASK_TERM,
     CONFIRM_DATA,
     CONSENT,
@@ -64,6 +65,7 @@ def _build_summary_data(user: dict[str, Any], request: dict[str, Any]) -> dict[s
     return {
         "name": user.get("full_name") or "Cliente",
         "cedula": mask_cedula(cedula) if cedula else None,
+        "purpose": request.get("loan_purpose") or "No indicado",
         "amount": float(request["requested_amount"]),
         "term": int(request["term_months"]),
         "income": float(request["monthly_income"]),
@@ -251,13 +253,31 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             cedula = (request or {}).get("cedula") or user.get("cedula")
             if cedula:
                 user_repository.update_cedula_consent(user_id, cedula)
-            response = message_service.ask_amount_message(user.get("full_name"))
-            next_state = ASK_AMOUNT
+            response = message_service.ask_purpose_message()
+            next_state = ASK_PURPOSE
         else:
             _reset_validation_failures(conversation_id)
             response = message_service.consent_declined_message()
             next_state = FINISHED
             conversation_repository.finish_conversation(conversation_id)
+
+    elif state == ASK_PURPOSE:
+        is_valid, _ = validation_service.validate_purpose(text)
+        if not is_valid:
+            handoff_response = _handle_validation_failure(
+                conversation_id, user_id, message_service.invalid_purpose_message()
+            )
+            if handoff_response:
+                return handoff_response
+            response = message_service.invalid_purpose_message()
+            next_state = ASK_PURPOSE
+        else:
+            _reset_validation_failures(conversation_id)
+            request = credit_repository.get_draft_request(conversation_id)
+            if request:
+                credit_repository.update_purpose(request["id"], text.strip())
+            response = message_service.ask_amount_message(user.get("full_name"))
+            next_state = ASK_AMOUNT
 
     elif state == ASK_AMOUNT:
         is_valid, _ = validation_service.validate_amount(text)
