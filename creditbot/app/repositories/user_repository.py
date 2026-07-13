@@ -54,17 +54,38 @@ def update_cedula_consent(user_id: str, cedula: str) -> dict[str, Any]:
     """Registra la cédula y el consentimiento del usuario (RF-08).
 
     La cédula solo se almacena tras el consentimiento explícito, junto con la
-    marca de tiempo en que fue otorgado.
+    marca de tiempo en que fue otorgado. Si falla el update (p. ej. constraint
+    UNIQUE legado en BD remota), registra solo el consentimiento.
     """
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        response = (
+            get_supabase_client()
+            .table("users")
+            .update(
+                {
+                    "cedula": cedula,
+                    "consent_given": True,
+                    "consent_at": now,
+                    "updated_at": now,
+                }
+            )
+            .eq("id", user_id)
+            .execute()
+        )
+        if response.data:
+            return response.data[0]
+    except Exception:
+        pass
+
     response = (
         get_supabase_client()
         .table("users")
         .update(
             {
-                "cedula": cedula,
                 "consent_given": True,
-                "consent_at": datetime.now(timezone.utc).isoformat(),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "consent_at": now,
+                "updated_at": now,
             }
         )
         .eq("id", user_id)

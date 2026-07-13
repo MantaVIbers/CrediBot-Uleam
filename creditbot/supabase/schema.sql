@@ -73,7 +73,9 @@ alter table handoff_cases add column if not exists transcript jsonb;
 
 -- Consentimiento e identidad del usuario (RF-08). La cédula se almacena en users
 -- solo tras el consentimiento; los datos crediticios viven en credit_profiles.
-alter table users add column if not exists cedula varchar(10) unique;
+alter table users add column if not exists cedula varchar(10);
+-- Sin UNIQUE en users.cedula: en demos varios teléfonos pueden usar la misma cédula seed.
+-- La unicidad del perfil crediticio vive en credit_profiles.cedula.
 alter table users add column if not exists consent_given boolean not null default false;
 alter table users add column if not exists consent_at timestamptz;
 
