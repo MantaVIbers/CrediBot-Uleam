@@ -5,7 +5,7 @@ Documento de trabajo que resume **qué se ha construido**, **con qué herramient
 precalificación de crédito por WhatsApp).
 
 > Repositorio: `MantaVIbers/CrediBot-Uleam` · Rama de trabajo: `develop`
-> Despliegue: `https://credibot-uleam-gjj2.onrender.com`
+> Despliegue: `https://credibot-uleam.onrender.com`
 
 ---
 
@@ -118,7 +118,17 @@ Commits).
   el consentimiento no se guardaba en `users` porque la cédula se leía de un objeto en
   memoria que se recargaba en cada mensaje; ahora se lee de la solicitud ya persistida.
 
-**Estado de pruebas:** 71 pruebas automatizadas, todas en verde.
+### Paso 7 — Integración OpenAI en todo el flujo
+- `app/services/ai_input_service.py`: normaliza lenguaje natural (ej. *un año* → 12 meses,
+  *cinco mil* → 5000, *sí autorizo* → 1) antes de validar cada paso.
+- `app/services/ai_assistant_service.py` + `rag_service.py`: modo información (menú opción 2)
+  con RAG sobre `data/politica_credito.md`.
+- Auditoría en `tool_audit_logs` para cada tool (`normalizar_entrada_usuario`,
+  `consultar_politica_credito`, `precalificar_por_cedula`).
+- Documentación: `docs/ia_tools_rag.md`.
+- _Commits:_ `feat: integrar OpenAI en todo el flujo conversacional`, docs y panel auditoría.
+
+**Estado de pruebas:** suite pytest completa en verde (ver CI en GitHub Actions).
 
 ---
 
@@ -164,6 +174,7 @@ Commits).
 | **GitHub Actions** | Integración continua (CI) | En cada push/PR instala dependencias y corre las pruebas automáticamente (build + tests). |
 | **Docker** | Contenedores | Empaqueta la app con sus dependencias para ejecutarla igual en cualquier entorno; opción de despliegue portable. |
 | **Render** | Plataforma de despliegue (PaaS) | Publica el backend con una URL pública accesible, con despliegue automático desde la rama de Git. |
+| **OpenAI API** | Modelos de lenguaje y embeddings | Normalización de texto, RAG y agente con function calling. |
 
 ### Panel administrativo (complementario)
 
@@ -223,15 +234,23 @@ docker run --rm -p 8000:8000 --env-file .env credibot
 | `TWILIO_VALIDATE_SIGNATURE` | `true` en producción con Twilio, `false` en local. |
 | `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` | Credenciales de Twilio (para WhatsApp real). |
 | `ADMIN_DASHBOARD_PASSWORD` | Clave del panel Streamlit (solo panel, no el backend). |
+| `OPENAI_API_KEY` | Clave OpenAI para IA y RAG. |
+| `OPENAI_MODEL` | Modelo chat (default `gpt-4o-mini`). |
 
 > El archivo `.env` **no se versiona** (está en `.gitignore`) porque contiene secretos.
 
 ---
 
-## 8. Próximos pasos
+## 8. Documentación relacionada
 
-1. Configurar **Twilio** para probar desde WhatsApp real (webhook →
-   `/webhook/whatsapp`).
-2. Fusionar `develop → main` y apuntar Render a `main`.
-3. (Futuro) Agente IA con tools + RAG sobre políticas de crédito (tablas ya previstas en
-   el esquema).
+- `docs/ia_tools_rag.md` — cálculos, tools, RAG, CI/CD y checklist de demo.
+- `docs/despliegue.md` — despliegue en Render y variables de entorno.
+- `docs/flujo_conversacional.md` — estados del bot.
+
+---
+
+## 9. Próximos pasos
+
+1. Mantener demo estable en Render con `OPENAI_API_KEY` configurada.
+2. Mostrar auditoría IA en el panel Streamlit durante la presentación.
+3. Fusionar `develop → main` cuando el equipo lo decida.
