@@ -203,6 +203,8 @@ def test_contains_handoff_keyword():
     assert _contains_handoff_keyword("quiero hablar con un asesor") is True
     assert _contains_handoff_keyword("impersonal") is False
     assert _contains_handoff_keyword("necesito un agente") is True
+    assert _contains_handoff_keyword("credito para persona natural") is False
+    assert _contains_handoff_keyword("hablar con una persona") is True
 
 
 @patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kwargs: kwargs["base_reply"])

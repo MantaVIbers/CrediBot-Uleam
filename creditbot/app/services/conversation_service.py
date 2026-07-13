@@ -31,10 +31,16 @@ from app.services import (
     validation_service,
 )
 
-# Palabras clave que el usuario puede escribir para solicitar un asesor humano
-HANDOFF_KEYWORDS = {"asesor", "humano", "persona", "agente"}
+# Palabras clave que el usuario puede escribir para solicitar un asesor humano.
+# "persona" no se usa sola: provoca falsos positivos ("persona natural", etc.).
+HANDOFF_KEYWORDS = {"asesor", "humano", "agente"}
 # Cantidad máxima de fallos de validación antes de derivar a asesor
 MAX_VALIDATION_FAILURES = 3
+# Frases que sí activan handoff cuando incluyen "persona"
+_HANDOFF_PERSONA_PATTERN = re.compile(
+    r"\b(?:hablar con|quiero|necesito|pasar a|derivar(?:me)? a?).{0,30}\bpersona\b",
+    re.IGNORECASE,
+)
 
 # Contador de fallos de validación por conversación (en memoria)
 _validation_failures: dict[str, int] = {}
@@ -88,8 +94,10 @@ def _build_result_data(evaluation: dict[str, Any]) -> dict[str, Any]:
 
 
 def _contains_handoff_keyword(text: str) -> bool:
-    """Detecta palabras clave de derivación como palabras completas."""
-    return any(re.search(rf"\b{re.escape(keyword)}\b", text) for keyword in HANDOFF_KEYWORDS)
+    """Detecta solicitud de asesor como palabras/frases completas."""
+    if any(re.search(rf"\b{re.escape(keyword)}\b", text) for keyword in HANDOFF_KEYWORDS):
+        return True
+    return bool(_HANDOFF_PERSONA_PATTERN.search(text))
 
 
 def _reset_validation_failures(conversation_id: str) -> None:
@@ -131,7 +139,11 @@ def _handle_validation_failure(
     user_id: str,
     response: str,
 ) -> str | None:
-    """Maneja un fallo de validación; si se supera el límite, deriva a asesor."""
+    """Si se supera el límite de fallos, deriva a asesor; si no, retorna None.
+
+    Retornar None permite que el flujo normal persista el mensaje de error
+    (outbound, hint de asesor y redacción IA).
+    """
     if _track_validation_failure(conversation_id):
         return _request_handoff(
             conversation_id,
@@ -139,7 +151,7 @@ def _handle_validation_failure(
             message_service.handoff_message(),
             reason="repeated_invalid_input",
         )
-    return response
+    return None
 
 
 def _continuation_prompt(state: str) -> str | None:
@@ -219,7 +231,11 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     next_state = state
     rag_chunks: list[rag_service.RagChunk] = []
 
-    if state not in {START, HANDOFF_REQUESTED, FINISHED} and intent_service.is_policy_question(text):
+    if (
+        state not in {START, HANDOFF_REQUESTED, FINISHED}
+        and intent_service.is_policy_question(text)
+        and not intent_service.looks_like_numeric_answer(text)
+    ):
         response, rag_chunks = _policy_response_for_state(text, state)
         next_state = state
 
@@ -420,30 +436,38 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     monto_solicitado=float(request["requested_amount"]),
                     conversation_id=conversation_id,
                 )
-                credit_repository.save_result_v2(
-                    request["id"],
-                    credit_score=evaluation.get("credit_score"),
-                    score_category=str(evaluation.get("categoria")),
-                    max_amount=float(evaluation.get("monto_maximo", 0.0)),
-                    annual_rate=float(evaluation.get("tea", 0.0)),
-                    estimated_payment=float(evaluation.get("cuota_estimada", 0.0)),
-                    payment_capacity=float(evaluation.get("capacidad_pago", 0.0)),
-                    result=str(evaluation["result"]),
-                )
-                result_data = _build_result_data(evaluation)
-                if evaluation["result"] == CREDIT_RESULT_PREAPPROVED:
-                    response = message_service.preapproved_message(result_data)
-                elif evaluation["result"] == CREDIT_RESULT_OBSERVED:
-                    response = message_service.observed_message(result_data)
-                    handoff_service.register_handoff(
-                        user_id=user_id,
-                        conversation_id=conversation_id,
-                        reason="observed_result",
-                        credit_request_id=request["id"],
+                if not evaluation.get("ok"):
+                    response = (
+                        f"No se pudo completar la precalificación: "
+                        f"{evaluation.get('motivo') or 'datos incompletos'}. "
+                        "Inténtalo de nuevo o escribe 'asesor'."
                     )
+                    next_state = CONFIRM_DATA
                 else:
-                    response = message_service.not_qualified_message(result_data)
-                next_state = SHOW_RESULT
+                    credit_repository.save_result_v2(
+                        request["id"],
+                        credit_score=evaluation.get("credit_score"),
+                        score_category=str(evaluation.get("categoria")),
+                        max_amount=float(evaluation.get("monto_maximo", 0.0)),
+                        annual_rate=float(evaluation.get("tea", 0.0)),
+                        estimated_payment=float(evaluation.get("cuota_estimada", 0.0)),
+                        payment_capacity=float(evaluation.get("capacidad_pago", 0.0)),
+                        result=str(evaluation["result"]),
+                    )
+                    result_data = _build_result_data(evaluation)
+                    if evaluation["result"] == CREDIT_RESULT_PREAPPROVED:
+                        response = message_service.preapproved_message(result_data)
+                    elif evaluation["result"] == CREDIT_RESULT_OBSERVED:
+                        response = message_service.observed_message(result_data)
+                        handoff_service.register_handoff(
+                            user_id=user_id,
+                            conversation_id=conversation_id,
+                            reason="observed_result",
+                            credit_request_id=request["id"],
+                        )
+                    else:
+                        response = message_service.not_qualified_message(result_data)
+                    next_state = SHOW_RESULT
         elif confirmation == "2":
             _reset_validation_failures(conversation_id)
             response = message_service.ask_name_message()
