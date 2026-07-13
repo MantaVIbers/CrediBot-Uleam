@@ -134,7 +134,7 @@ Commits).
   el consentimiento no se guardaba en `users` porque la cédula se leía de un objeto en
   memoria que se recargaba en cada mensaje; ahora se lee de la solicitud ya persistida.
 
-**Estado de pruebas:** 77 pruebas automatizadas, todas en verde.
+**Estado de pruebas:** 78 pruebas automatizadas, todas en verde.
 
 ---
 
