@@ -21,7 +21,13 @@ from app.core.constants import (
 from app.agent import openai_agent
 from app.domain.cedula_validator import mask_cedula
 from app.repositories import conversation_repository, credit_repository, message_repository, user_repository
-from app.services import handoff_service, message_service, precalificacion_service, validation_service
+from app.services import (
+    handoff_service,
+    intent_service,
+    message_service,
+    precalificacion_service,
+    validation_service,
+)
 
 # Palabras clave que el usuario puede escribir para solicitar un asesor humano
 HANDOFF_KEYWORDS = {"asesor", "humano", "persona", "agente"}
@@ -164,8 +170,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
         next_state = MENU
 
     elif state == MENU:
-        is_valid, _ = validation_service.validate_menu_option(text)
-        if not is_valid:
+        menu_option = intent_service.menu_option_from_text(text)
+        if menu_option is None:
             handoff_response = _handle_validation_failure(
                 conversation_id,
                 user_id,
@@ -175,16 +181,16 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 return handoff_response
             response = message_service.invalid_menu_message() + "\n\n" + message_service.welcome_message()
             next_state = MENU
-        elif text.strip() == "1":
+        elif menu_option == "1":
             _reset_validation_failures(conversation_id)
             credit_repository.create_draft_request(user_id, conversation_id)
             response = message_service.ask_name_message()
             next_state = ASK_NAME
-        elif text.strip() == "2":
+        elif menu_option == "2":
             _reset_validation_failures(conversation_id)
             response = message_service.general_info_message()
             next_state = MENU
-        elif text.strip() == "3":
+        elif menu_option == "3":
             return _request_handoff(
                 conversation_id,
                 user_id,
@@ -230,8 +236,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             next_state = CONSENT
 
     elif state == CONSENT:
-        is_valid, _ = validation_service.validate_confirmation(text)
-        if not is_valid:
+        confirmation = intent_service.confirmation_from_text(text)
+        if confirmation is None:
             handoff_response = _handle_validation_failure(
                 conversation_id, user_id, message_service.invalid_confirmation_message()
             )
@@ -239,7 +245,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 return handoff_response
             response = message_service.invalid_confirmation_message()
             next_state = CONSENT
-        elif text.strip() == "1":
+        elif confirmation == "1":
             _reset_validation_failures(conversation_id)
             request = credit_repository.get_draft_request(conversation_id)
             cedula = (request or {}).get("cedula") or user.get("cedula")
@@ -314,8 +320,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 next_state = MENU
 
     elif state == CONFIRM_DATA:
-        is_valid, _ = validation_service.validate_confirmation(text)
-        if not is_valid:
+        confirmation = intent_service.confirmation_from_text(text)
+        if confirmation is None:
             handoff_response = _handle_validation_failure(
                 conversation_id, user_id, message_service.invalid_confirmation_message()
             )
@@ -323,7 +329,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 return handoff_response
             response = message_service.invalid_confirmation_message()
             next_state = CONFIRM_DATA
-        elif text.strip() == "1":
+        elif confirmation == "1":
             _reset_validation_failures(conversation_id)
             request = credit_repository.get_draft_request(conversation_id)
             if not request:
@@ -362,7 +368,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 else:
                     response = message_service.not_qualified_message(result_data)
                 next_state = SHOW_RESULT
-        elif text.strip() == "2":
+        elif confirmation == "2":
             _reset_validation_failures(conversation_id)
             response = message_service.ask_name_message()
             next_state = ASK_NAME
@@ -382,6 +388,9 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
 
     if next_state != state:
         conversation_repository.update_state(conversation_id, next_state)
+
+    if next_state not in {HANDOFF_REQUESTED, FINISHED}:
+        response = message_service.with_handoff_hint(response)
 
     response = openai_agent.render_reply(
         base_reply=response,

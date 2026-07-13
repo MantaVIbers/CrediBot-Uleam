@@ -1,5 +1,14 @@
 """Mensajes predefinidos del bot para cada estado de la conversación."""
 
+HANDOFF_HINT = "Si prefieres ayuda humana, escribe 'asesor' en cualquier momento."
+
+
+def with_handoff_hint(message: str) -> str:
+    """Agrega la salida a asesor sin duplicarla."""
+    if not message or "asesor" in message.lower():
+        return message
+    return f"{message}\n\n{HANDOFF_HINT}"
+
 
 def welcome_message() -> str:
     """Mensaje de bienvenida con el menú principal."""
