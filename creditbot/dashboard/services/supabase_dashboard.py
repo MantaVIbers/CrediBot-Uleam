@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
+import streamlit as st
 from supabase import Client, create_client
 
 
@@ -17,10 +18,17 @@ class DashboardConfigError(RuntimeError):
 
 
 def _get_env_value(name: str) -> str:
-    """Obtiene el valor de una variable de entorno."""
+    """Obtiene un valor desde .env local o secretos de Streamlit Cloud."""
     import os
 
-    return os.getenv(name, "").strip()
+    env_value = os.getenv(name, "").strip()
+    if env_value:
+        return env_value
+
+    try:
+        return str(st.secrets.get(name, "")).strip()
+    except Exception:
+        return ""
 
 
 @lru_cache
@@ -31,7 +39,7 @@ def get_supabase_client() -> Client:
 
     if not supabase_url or not supabase_key:
         raise DashboardConfigError(
-            "Configura SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en creditbot/.env."
+            "Configura SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en .env o en Secrets."
         )
 
     return create_client(supabase_url, supabase_key)

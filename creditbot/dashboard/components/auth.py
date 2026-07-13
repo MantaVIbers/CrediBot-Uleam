@@ -11,8 +11,15 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 
 def _get_admin_password() -> str:
-    """Lee la contraseña del dashboard desde la variable de entorno."""
-    return os.getenv("ADMIN_DASHBOARD_PASSWORD", "").strip()
+    """Lee la contraseña desde .env local o secretos de Streamlit Cloud."""
+    env_value = os.getenv("ADMIN_DASHBOARD_PASSWORD", "").strip()
+    if env_value:
+        return env_value
+
+    try:
+        return str(st.secrets.get("ADMIN_DASHBOARD_PASSWORD", "")).strip()
+    except Exception:
+        return ""
 
 
 def _logout() -> None:
@@ -35,7 +42,7 @@ def require_auth() -> None:
     st.title("Acceso administrativo")
 
     if not expected_password:
-        st.warning("Configura ADMIN_DASHBOARD_PASSWORD en creditbot/.env.")
+        st.warning("Configura ADMIN_DASHBOARD_PASSWORD en .env o en Secrets.")
         st.stop()
 
     with st.form("admin_login_form"):
@@ -50,4 +57,3 @@ def require_auth() -> None:
             st.error("Contrasena incorrecta.")
 
     st.stop()
-

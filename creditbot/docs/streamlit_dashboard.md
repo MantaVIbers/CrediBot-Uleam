@@ -81,6 +81,30 @@ ADMIN_DASHBOARD_PASSWORD=tu_clave_admin
 
 Al abrir la URL de Render, ingresa la contraseña configurada en `ADMIN_DASHBOARD_PASSWORD`.
 
+## Despliegue en Streamlit Community Cloud
+
+Tambien puedes desplegar solo el dashboard en Streamlit Cloud.
+
+En `https://share.streamlit.io`, usa estos valores:
+
+| Campo | Valor |
+|---|---|
+| **Repository** | `MantaVIbers/CrediBot-Uleam` |
+| **Branch** | `main` |
+| **Main file path** | `creditbot/dashboard/app.py` |
+| **App URL** | `credibot-dashboard` o el nombre disponible que prefieras |
+
+En **Advanced settings**, pega los secretos en formato TOML:
+
+```toml
+SUPABASE_URL = "https://tu-proyecto.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY = "tu-service-role-key"
+ADMIN_DASHBOARD_PASSWORD = "tu_clave_admin"
+```
+
+El archivo `dashboard/requirements.txt` contiene las dependencias minimas para que
+Streamlit Cloud instale el panel desde esa subcarpeta.
+
 ## Flujo de prueba
 
 1. Abre la URL local de Streamlit.
