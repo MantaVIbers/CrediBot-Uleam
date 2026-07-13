@@ -4,6 +4,8 @@
 START = "START"
 MENU = "MENU"
 ASK_NAME = "ASK_NAME"
+ASK_CEDULA = "ASK_CEDULA"
+CONSENT = "CONSENT"
 ASK_AMOUNT = "ASK_AMOUNT"
 ASK_TERM = "ASK_TERM"
 ASK_INCOME = "ASK_INCOME"
@@ -17,3 +19,9 @@ FINISHED = "FINISHED"
 CREDIT_RESULT_PREAPPROVED = "preaprobado"
 CREDIT_RESULT_OBSERVED = "observado"
 CREDIT_RESULT_NOT_QUALIFIED = "no_cumple"
+
+# Categorías de score crediticio (escala Ecuador 1–999, referencia Equifax)
+SCORE_EXCELLENT = "excelente"
+SCORE_ACCEPTABLE = "aceptable"
+SCORE_REGULAR = "regular"
+SCORE_HIGH_RISK = "alto_riesgo"

@@ -4,10 +4,12 @@ from typing import Any
 
 from app.core.constants import (
     ASK_AMOUNT,
+    ASK_CEDULA,
     ASK_INCOME,
     ASK_NAME,
     ASK_TERM,
     CONFIRM_DATA,
+    CONSENT,
     CREDIT_RESULT_OBSERVED,
     CREDIT_RESULT_PREAPPROVED,
     FINISHED,
@@ -16,8 +18,9 @@ from app.core.constants import (
     SHOW_RESULT,
     START,
 )
+from app.domain.cedula_validator import mask_cedula
 from app.repositories import conversation_repository, credit_repository, message_repository, user_repository
-from app.services import credit_service, handoff_service, message_service, validation_service
+from app.services import handoff_service, message_service, precalificacion_service, validation_service
 
 # Palabras clave que el usuario puede escribir para solicitar un asesor humano
 HANDOFF_KEYWORDS = {"asesor", "humano", "persona", "agente"}
@@ -43,22 +46,34 @@ def _parse_income(value: str) -> float:
     return validation_service.parse_numeric_value(value)
 
 
+def _clean_cedula(value: str) -> str:
+    """Normaliza la cédula quitando espacios y guiones."""
+    return value.strip().replace("-", "").replace(" ", "")
+
+
 def _build_summary_data(user: dict[str, Any], request: dict[str, Any]) -> dict[str, Any]:
     """Construye un dict con los datos resumidos para confirmación del usuario."""
+    cedula = request.get("cedula") or user.get("cedula")
     return {
         "name": user.get("full_name") or "Cliente",
+        "cedula": mask_cedula(cedula) if cedula else None,
         "amount": float(request["requested_amount"]),
         "term": int(request["term_months"]),
         "income": float(request["monthly_income"]),
     }
 
 
-def _build_result_data(request: dict[str, Any], evaluation: dict[str, Any]) -> dict[str, Any]:
-    """Construye un dict con los datos del resultado de la evaluación."""
+def _build_result_data(evaluation: dict[str, Any]) -> dict[str, Any]:
+    """Construye un dict con los datos del resultado de la precalificación v2."""
     return {
-        "estimated_payment": float(evaluation["estimated_payment"]),
-        "payment_capacity": float(evaluation["payment_capacity"]),
         "result": evaluation["result"],
+        "categoria": evaluation.get("categoria"),
+        "motivo": evaluation.get("motivo"),
+        "tea": float(evaluation.get("tea", 0.0)),
+        "capacidad_pago": float(evaluation.get("capacidad_pago", 0.0)),
+        "monto_maximo": float(evaluation.get("monto_maximo", 0.0)),
+        "cuota_estimada": float(evaluation.get("cuota_estimada", 0.0)),
+        "plazo_meses": int(evaluation.get("plazo_meses", 0)),
     }
 
 
@@ -190,8 +205,52 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             _reset_validation_failures(conversation_id)
             user_repository.update_user_name(user_id, text.strip())
             user["full_name"] = text.strip()
+            response = message_service.ask_cedula_message()
+            next_state = ASK_CEDULA
+
+    elif state == ASK_CEDULA:
+        is_valid, reason = validation_service.validate_cedula(text)
+        if not is_valid:
+            handoff_response = _handle_validation_failure(
+                conversation_id, user_id, message_service.invalid_cedula_message(reason)
+            )
+            if handoff_response:
+                return handoff_response
+            response = message_service.invalid_cedula_message(reason)
+            next_state = ASK_CEDULA
+        else:
+            _reset_validation_failures(conversation_id)
+            cedula = _clean_cedula(text)
+            request = credit_repository.get_draft_request(conversation_id)
+            if request:
+                credit_repository.update_cedula(request["id"], cedula)
+            user["cedula"] = cedula
+            response = message_service.ask_consent_message()
+            next_state = CONSENT
+
+    elif state == CONSENT:
+        is_valid, _ = validation_service.validate_confirmation(text)
+        if not is_valid:
+            handoff_response = _handle_validation_failure(
+                conversation_id, user_id, message_service.invalid_confirmation_message()
+            )
+            if handoff_response:
+                return handoff_response
+            response = message_service.invalid_confirmation_message()
+            next_state = CONSENT
+        elif text.strip() == "1":
+            _reset_validation_failures(conversation_id)
+            request = credit_repository.get_draft_request(conversation_id)
+            cedula = (request or {}).get("cedula") or user.get("cedula")
+            if cedula:
+                user_repository.update_cedula_consent(user_id, cedula)
             response = message_service.ask_amount_message(user.get("full_name"))
             next_state = ASK_AMOUNT
+        else:
+            _reset_validation_failures(conversation_id)
+            response = message_service.consent_declined_message()
+            next_state = FINISHED
+            conversation_repository.finish_conversation(conversation_id)
 
     elif state == ASK_AMOUNT:
         is_valid, _ = validation_service.validate_amount(text)
@@ -270,18 +329,25 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 response = message_service.welcome_message()
                 next_state = MENU
             else:
-                evaluation = credit_service.evaluate_credit_request(
-                    float(request["requested_amount"]),
-                    int(request["term_months"]),
+                cedula = request.get("cedula") or user.get("cedula") or ""
+                evaluation = precalificacion_service.precalificar_por_cedula(
+                    cedula,
                     float(request["monthly_income"]),
+                    int(request["term_months"]),
+                    monto_solicitado=float(request["requested_amount"]),
+                    conversation_id=conversation_id,
                 )
-                credit_repository.save_result(
+                credit_repository.save_result_v2(
                     request["id"],
-                    float(evaluation["estimated_payment"]),
-                    float(evaluation["payment_capacity"]),
-                    str(evaluation["result"]),
+                    credit_score=evaluation.get("credit_score"),
+                    score_category=str(evaluation.get("categoria")),
+                    max_amount=float(evaluation.get("monto_maximo", 0.0)),
+                    annual_rate=float(evaluation.get("tea", 0.0)),
+                    estimated_payment=float(evaluation.get("cuota_estimada", 0.0)),
+                    payment_capacity=float(evaluation.get("capacidad_pago", 0.0)),
+                    result=str(evaluation["result"]),
                 )
-                result_data = _build_result_data(request, evaluation)
+                result_data = _build_result_data(evaluation)
                 if evaluation["result"] == CREDIT_RESULT_PREAPPROVED:
                     response = message_service.preapproved_message(result_data)
                 elif evaluation["result"] == CREDIT_RESULT_OBSERVED:

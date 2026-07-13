@@ -1,4 +1,12 @@
 """Funciones de validación de entrada del usuario."""
+from app.domain.cedula_validator import validate_cedula as _validate_cedula
+
+
+def validate_cedula(value: str) -> tuple[bool, str | None]:
+    """Valida una cédula ecuatoriana (delega en el dominio, algoritmo módulo 10)."""
+    if value is None:
+        return False, "La cédula es obligatoria."
+    return _validate_cedula(value)
 
 
 def parse_numeric_value(value: str) -> float:

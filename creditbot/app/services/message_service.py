@@ -16,6 +16,40 @@ def ask_name_message() -> str:
     return "Perfecto. Indícame tu nombre completo."
 
 
+def ask_cedula_message() -> str:
+    """Solicita la cédula para consultar el perfil crediticio."""
+    return (
+        "Gracias. Ahora indícame tu número de cédula (10 dígitos) "
+        "para consultar tu perfil crediticio."
+    )
+
+
+def ask_consent_message() -> str:
+    """Solicita consentimiento para consultar el buró crediticio (RF-08)."""
+    return (
+        "Para precalificarte necesito tu autorización para consultar tu "
+        "historial crediticio (datos simulados con fines académicos). "
+        "¿Autorizas la consulta?\n"
+        "1. Sí, autorizo\n"
+        "2. No autorizo"
+    )
+
+
+def consent_declined_message() -> str:
+    """Mensaje cuando el usuario no autoriza la consulta del buró."""
+    return (
+        "Entendido. Sin tu autorización no podemos consultar tu historial "
+        "ni continuar con la precalificación. Puedes volver a escribirnos "
+        "cuando desees retomarla."
+    )
+
+
+def invalid_cedula_message(reason: str | None = None) -> str:
+    """Mensaje de error para cédula inválida, con el motivo si está disponible."""
+    detail = f" {reason}" if reason else ""
+    return f"La cédula ingresada no es válida.{detail} Inténtalo de nuevo."
+
+
 def ask_amount_message(name: str | None = None) -> str:
     """Solicita el monto del crédito, opcionalmente saludando por el nombre."""
     if name:
@@ -76,9 +110,11 @@ def general_info_message() -> str:
 
 def confirm_data_message(data: dict) -> str:
     """Muestra resumen de datos para confirmación del usuario."""
+    cedula_line = f"Cédula: {data['cedula']}\n" if data.get("cedula") else ""
     return (
         "Resumen:\n"
         f"Nombre: {data['name']}\n"
+        f"{cedula_line}"
         f"Monto: ${data['amount']:.2f}\n"
         f"Plazo: {data['term']} meses\n"
         f"Ingreso: ${data['income']:.2f}\n"
@@ -88,11 +124,23 @@ def confirm_data_message(data: dict) -> str:
     )
 
 
-def preapproved_message(data: dict) -> str:
-    """Mensaje de resultado preaprobado."""
+def _result_details(data: dict) -> str:
+    """Bloque común de detalles numéricos de la precalificación v2."""
+    tea_pct = float(data.get("tea", 0.0)) * 100
     return (
-        f"Resultado: Preaprobado.\n"
-        f"Cuota estimada: ${data['estimated_payment']:.2f}\n"
+        f"Categoría de score: {data['categoria']}\n"
+        f"Monto máximo precalificado: ${float(data['monto_maximo']):.2f}\n"
+        f"Plazo: {int(data['plazo_meses'])} meses\n"
+        f"Cuota estimada: ${float(data['cuota_estimada']):.2f}\n"
+        f"Tasa referencial (TEA): {tea_pct:.2f}%"
+    )
+
+
+def preapproved_message(data: dict) -> str:
+    """Mensaje de resultado preaprobado (v2 con monto máximo, cuota y tasa)."""
+    return (
+        "Resultado: Preaprobado.\n"
+        f"{_result_details(data)}\n"
         "Un asesor puede continuar con la validación final."
     )
 
@@ -100,19 +148,25 @@ def preapproved_message(data: dict) -> str:
 def observed_message(data: dict) -> str:
     """Mensaje de resultado observado (requiere revisión de asesor)."""
     return (
-        f"Resultado: Observado.\n"
-        f"Cuota estimada: ${data['estimated_payment']:.2f}\n"
-        f"Capacidad de pago: ${data['payment_capacity']:.2f}\n"
+        "Resultado: Observado.\n"
+        f"{_result_details(data)}\n"
         "Un asesor revisará tu caso y se comunicará contigo."
     )
 
 
 def not_qualified_message(data: dict) -> str:
     """Mensaje de resultado no cumple condiciones."""
+    motivos = {
+        "lista_negra": "Tu perfil figura con restricciones que impiden continuar.",
+        "mora_activa": "Registras mora activa que impide la precalificación.",
+        "score_alto_riesgo": "Tu score se encuentra en la categoría de alto riesgo.",
+    }
+    motivo_line = motivos.get(str(data.get("motivo")), "")
+    detalle = f"{motivo_line}\n" if motivo_line else ""
     return (
-        f"Resultado: No cumple.\n"
-        f"Cuota estimada: ${data['estimated_payment']:.2f}\n"
-        f"Capacidad de pago: ${data['payment_capacity']:.2f}\n"
+        "Resultado: No cumple.\n"
+        f"Categoría de score: {data['categoria']}\n"
+        f"{detalle}"
         "Por ahora no cumples las condiciones básicas de precalificación."
     )
 

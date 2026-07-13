@@ -90,6 +90,23 @@ def update_income(request_id: str, monthly_income: float) -> dict[str, Any]:
     return response.data[0]
 
 
+def update_cedula(request_id: str, cedula: str) -> dict[str, Any]:
+    """Guarda la cédula asociada a la solicitud (flujo v2)."""
+    response = (
+        get_supabase_client()
+        .table("credit_requests")
+        .update(
+            {
+                "cedula": cedula,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        .eq("id", request_id)
+        .execute()
+    )
+    return response.data[0]
+
+
 def save_result(
     request_id: str,
     estimated_payment: float,
@@ -102,6 +119,40 @@ def save_result(
         .table("credit_requests")
         .update(
             {
+                "estimated_payment": estimated_payment,
+                "payment_capacity": payment_capacity,
+                "result": result,
+                "status": "completed",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        .eq("id", request_id)
+        .execute()
+    )
+    return response.data[0]
+
+
+def save_result_v2(
+    request_id: str,
+    *,
+    credit_score: int | None,
+    score_category: str,
+    max_amount: float,
+    annual_rate: float,
+    estimated_payment: float,
+    payment_capacity: float,
+    result: str,
+) -> dict[str, Any]:
+    """Guarda el resultado de la precalificación v2 (score, categoría, monto y tasa)."""
+    response = (
+        get_supabase_client()
+        .table("credit_requests")
+        .update(
+            {
+                "credit_score": credit_score,
+                "score_category": score_category,
+                "max_amount": max_amount,
+                "annual_rate": annual_rate,
                 "estimated_payment": estimated_payment,
                 "payment_capacity": payment_capacity,
                 "result": result,

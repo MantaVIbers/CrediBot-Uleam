@@ -1,4 +1,5 @@
 """Operaciones de base de datos para la tabla users."""
+from datetime import datetime, timezone
 from typing import Any
 
 from app.repositories.supabase_client import get_supabase_client
@@ -43,6 +44,29 @@ def update_user_name(user_id: str, full_name: str) -> dict[str, Any]:
         get_supabase_client()
         .table("users")
         .update({"full_name": full_name})
+        .eq("id", user_id)
+        .execute()
+    )
+    return response.data[0]
+
+
+def update_cedula_consent(user_id: str, cedula: str) -> dict[str, Any]:
+    """Registra la cédula y el consentimiento del usuario (RF-08).
+
+    La cédula solo se almacena tras el consentimiento explícito, junto con la
+    marca de tiempo en que fue otorgado.
+    """
+    response = (
+        get_supabase_client()
+        .table("users")
+        .update(
+            {
+                "cedula": cedula,
+                "consent_given": True,
+                "consent_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         .eq("id", user_id)
         .execute()
     )
