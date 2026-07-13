@@ -30,6 +30,7 @@ except Exception as exc:
     st.error(f"No se pudo consultar Supabase: {exc}")
     st.stop()
 
+# Convertir datos a DataFrames para procesamiento
 df = pd.DataFrame(solicitudes)
 df_casos = pd.DataFrame(casos_derivados)
 

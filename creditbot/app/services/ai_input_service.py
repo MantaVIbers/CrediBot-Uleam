@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 TOOL_NAME = "normalizar_entrada_usuario"
 
+# Instrucciones específicas para cada campo que el LLM debe normalizar
 FIELD_PROMPTS: dict[str, str] = {
     "menu_option": (
         "Opciones: 1=precalificar crédito, 2=información general, 3=hablar con asesor. "
@@ -77,32 +78,39 @@ def _local_normalize(field: str, text: str) -> str | None:
     if not cleaned:
         return None
 
+    # Normalización de plazo: busca patrones como "un año", "dos años", etc.
     if field == "term_months":
         for pattern, months in _TERM_HINTS:
             if pattern.search(cleaned):
                 return str(months)
+        # Intenta extraer directamente un número seguido de "meses"
         match = re.search(r"(\d+)\s*meses?", cleaned, re.I)
         if match:
             return match.group(1)
 
+    # Normalización de confirmación: acepta "sí", "ok", "autorizo", etc.
     if field == "confirmation":
         if _CONFIRM_YES.match(cleaned):
             return "1"
         if _CONFIRM_NO.match(cleaned):
             return "2"
 
+    # Normalización de opción de menú: 1=precalificar, 2=info, 3=asesor
     if field == "menu_option":
         for pattern, option in _MENU_HINTS:
             if pattern.search(cleaned):
                 return option
 
+    # Normalización de cédula: extrae solo dígitos y valida longitud
     if field == "cedula":
         digits = re.sub(r"\D", "", cleaned)
         if len(digits) == 10:
             return digits
 
+    # Normalización de montos: elimina símbolos y formato de moneda
     if field in {"amount", "income"}:
         numeric = cleaned.replace("$", "").replace("USD", "").replace("usd", "")
+        # Maneja formato europeo (1.200,50) vs formato US (1,200.50)
         numeric = numeric.replace(".", "").replace(",", ".") if re.search(r"\d,\d", numeric) else numeric
         match = re.search(r"(\d+(?:\.\d+)?)", numeric.replace(" ", ""))
         if match:
@@ -176,14 +184,17 @@ def normalize_user_input(
     if not raw or field not in FIELD_PROMPTS:
         return text
 
+    # Primero intenta normalizar con reglas locales (rápido y sin costo)
     local = _local_normalize(field, raw)
     if local:
         _audit(field, raw, local, success=True, latency_ms=0, conversation_id=conversation_id, source="local")
         return local
 
+    # Si OpenAI no está configurado, retorna el texto original
     if not is_enabled():
         return text
 
+    # Si las reglas locales fallaron, intenta con OpenAI
     started = time.perf_counter()
     try:
         ai_value = _normalize_with_openai(field, raw)

@@ -38,14 +38,17 @@ if not registros:
     )
     st.stop()
 
+# Convertir registros a DataFrame para análisis
 df = pd.DataFrame(registros)
 
+# Filtro por nombre de herramienta (tool)
 if "tool_name" in df.columns:
     tools = ["Todos"] + sorted(df["tool_name"].dropna().unique().tolist())
     tool_filter = st.selectbox("Tool", tools)
     if tool_filter != "Todos":
         df = df[df["tool_name"] == tool_filter]
 
+# Filtro por resultado (éxito/fallo)
 if "success" in df.columns:
     ok_filter = st.selectbox("Resultado", ["Todos", "Exitosos", "Fallidos"])
     if ok_filter == "Exitosos":

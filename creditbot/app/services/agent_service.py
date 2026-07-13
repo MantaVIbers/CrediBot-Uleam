@@ -25,6 +25,7 @@ from app.services import rag_service
 logger = logging.getLogger(__name__)
 
 AGENT_TOOL_NAME = "agente_openai_tools"
+# Número máximo de iteraciones tool-calling antes de forzar respuesta final
 MAX_TOOL_ROUNDS = 5
 
 AGENT_SYSTEM_PROMPT = """Eres CrediBot, asistente de precalificación crediticia de ULEAM (demo académica).
@@ -34,6 +35,7 @@ No inventes montos, tasas ni scores: apóyate en los resultados de las tools.
 Recuerda: esto es precalificación simulada, no una aprobación final.
 Si preguntan cómo precalificar, indica que en el menú principal pueden elegir la opción 1."""
 
+# Definición de tools disponibles para el agente OpenAI
 OPENAI_TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
@@ -177,7 +179,9 @@ def _tool_validar_cedula(cedula: str, conversation_id: str | None) -> dict[str, 
 
 def _tool_explicar_reglas_credito(tema: str | None, conversation_id: str | None) -> dict[str, Any]:
     started = time.perf_counter()
+    # Normaliza el tema: si no se especifica, usa "general"
     normalized = (tema or "general").strip().lower()
+    # Construye el diccionario completo de reglas de negocio
     reglas: dict[str, Any] = {
         "categorias_score": {
             SCORE_EXCELLENT: "750-999",
@@ -192,12 +196,14 @@ def _tool_explicar_reglas_credito(tema: str | None, conversation_id: str | None)
         "plazos_validos_meses": "3 a 36",
         "resultados_posibles": ["preaprobado", "observado", "no_cumple"],
     }
+    # Mapeo de temas del usuario a claves del diccionario de reglas
     tema_keys = {
         "score": "categorias_score",
         "tasas": "tasas_tea_referenciales",
         "capacidad": "capacidad_pago",
         "elegibilidad": "mora_maxima_dias",
     }
+    # Filtra las reglas según el tema solicitado
     if normalized != "general":
         key = tema_keys.get(normalized)
         if key:
@@ -205,6 +211,7 @@ def _tool_explicar_reglas_credito(tema: str | None, conversation_id: str | None)
         else:
             payload = {"tema": normalized, "reglas": {"mensaje": "Tema no reconocido; usa general."}}
     else:
+        # Tema "general": retorna todas las reglas disponibles
         payload = {"tema": "general", "reglas": reglas}
 
     latency_ms = int((time.perf_counter() - started) * 1000)
@@ -219,6 +226,7 @@ def _tool_explicar_reglas_credito(tema: str | None, conversation_id: str | None)
     return payload
 
 
+# Despacha la llamada a la tool correspondiente según el nombre
 def _dispatch_tool(name: str, arguments: dict[str, Any], conversation_id: str | None) -> dict[str, Any]:
     if name == "consultar_politica_credito":
         return _tool_consultar_politica_credito(arguments.get("pregunta", ""), conversation_id)
@@ -273,6 +281,7 @@ def answer_question(question: str, conversation_id: str | None = None) -> str:
             {"role": "user", "content": cleaned},
         ]
 
+        # Loop principal de function calling: el agente puede llamar tools hasta MAX_TOOL_ROUNDS veces
         answer = _fallback_answer()
         for _ in range(MAX_TOOL_ROUNDS):
             response = client.chat.completions.create(
@@ -283,11 +292,14 @@ def answer_question(question: str, conversation_id: str | None = None) -> str:
                 tools=OPENAI_TOOLS,
             )
             message = response.choices[0].message
+            # Si no hay tool_calls, el agente dio la respuesta final
             if not message.tool_calls:
                 answer = (message.content or "").strip() or _fallback_answer()
                 break
 
+            # Agrega la respuesta del asistente al historial de mensajes
             messages.append(message.model_dump(exclude_none=True))
+            # Ejecuta cada tool invocada y agrega el resultado al historial
             for tool_call in message.tool_calls:
                 fn_name = tool_call.function.name
                 try:

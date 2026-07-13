@@ -99,6 +99,7 @@ async def receive_whatsapp_webhook(request: Request):
     """Recibe mensajes entrantes (JSON Meta o form Twilio), procesa y responde."""
     content_type = (request.headers.get("content-type") or "").lower()
 
+    # Meta Cloud API envía JSON; Twilio envía form-urlencoded
     if "application/json" in content_type:
         raw_body = await request.body()
         _validate_meta_signature(
@@ -118,6 +119,7 @@ async def receive_whatsapp_webhook(request: Request):
             _send_reply(incoming["phone"], reply)
         return {"status": "ok"}
 
+    # Rama Twilio: procesar datos del formulario
     form = await request.form()
     form_data = {key: str(value) for key, value in form.items()}
     _validate_twilio_signature(request, form_data)

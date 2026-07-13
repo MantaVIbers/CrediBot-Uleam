@@ -10,6 +10,7 @@ class WhatsAppProviderError(Exception):
 class WhatsAppProvider(ABC):
     """Interfaz mínima para enviar texto por WhatsApp."""
 
+    # Nombre identificador del proveedor (sobrescrito por subclases)
     name: str = "base"
 
     @abstractmethod

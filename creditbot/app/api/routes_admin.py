@@ -85,6 +85,7 @@ def get_conversation_by_phone(phone: str):
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
+    # Buscar conversación activa; si no existe, obtener la más reciente
     conversation = conversation_repository.get_active_conversation(user["id"])
     if not conversation:
         response = (

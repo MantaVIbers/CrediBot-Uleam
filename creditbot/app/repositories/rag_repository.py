@@ -10,6 +10,7 @@ def list_chunks_with_embeddings(limit: int = 200) -> list[dict[str, Any]]:
         get_supabase_client()
         .table("rag_chunks")
         .select("id, content, embedding, metadata")
+        # Filtra solo chunks que tengan embedding generado (no nulo)
         .not_.is_("embedding", "null")
         .limit(limit)
         .execute()

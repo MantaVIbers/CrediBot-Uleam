@@ -23,6 +23,7 @@ st.title("Panel Administrativo CrediBot")
 st.caption("Resumen general de usuarios, solicitudes y casos derivados.")
 
 try:
+    # Consultar datos de la base de datos Supabase
     usuarios = obtener_usuarios()
     solicitudes = obtener_solicitudes()
     casos_derivados = obtener_casos_derivados()
@@ -33,6 +34,7 @@ except Exception as exc:
     st.error(f"No se pudo consultar Supabase: {exc}")
     st.stop()
 
+# Convertir listas a DataFrames para facilitar el análisis
 df_usuarios = pd.DataFrame(usuarios)
 df_solicitudes = pd.DataFrame(solicitudes)
 df_casos_derivados = pd.DataFrame(casos_derivados)
@@ -41,6 +43,7 @@ total_usuarios = len(df_usuarios)
 total_solicitudes = len(df_solicitudes)
 total_casos_derivados = len(df_casos_derivados)
 
+# Calcular estadísticas por categoría de resultado
 if df_solicitudes.empty or "result" not in df_solicitudes:
     preaprobadas = 0
     observadas = 0

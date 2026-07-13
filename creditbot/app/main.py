@@ -7,6 +7,7 @@ from app.api.routes_health import router as health_router
 from app.api.routes_simulator import router as simulator_router
 from app.api.routes_webhook import router as webhook_router
 
+# Crear la instancia principal de FastAPI
 app = FastAPI(title="CrediBot", version="0.1.0")
 
 

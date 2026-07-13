@@ -5,6 +5,7 @@ from typing import Any
 from app.repositories import handoff_repository, message_repository, user_repository
 from app.services.whatsapp_service import WhatsAppServiceError, send_text_message
 
+# Mapeo de claves internas a etiquetas legibles para el dashboard
 REASON_LABELS = {
     "user_requested_advisor": "El cliente solicitó hablar con un asesor.",
     "menu_option_3": "El cliente eligió la opción de hablar con asesor.",
@@ -15,6 +16,7 @@ REASON_LABELS = {
 
 def _compact_transcript(messages: list[dict[str, Any]], limit: int = 12) -> list[dict[str, str]]:
     """Prepara los últimos mensajes para que el asesor retome el caso."""
+    # Extrae solo los campos necesarios para reducir tamaño del transcript
     compact: list[dict[str, str]] = []
     for message in messages[-limit:]:
         compact.append(
@@ -29,7 +31,9 @@ def _compact_transcript(messages: list[dict[str, Any]], limit: int = 12) -> list
 
 def _build_handoff_summary(reason: str, transcript: list[dict[str, str]]) -> str:
     """Construye un resumen breve y estable para el asesor humano."""
+    # Traduce la clave interna a texto legible
     reason_text = REASON_LABELS.get(reason, f"Motivo de derivación: {reason}.")
+    # Busca el último mensaje del usuario en orden inverso
     last_user_message = next(
         (
             item["content"]
@@ -101,10 +105,12 @@ def reply_as_advisor(case_id: str, content: str) -> dict[str, Any]:
     user_id = str(case["user_id"])
 
     try:
+        # Envía el mensaje por WhatsApp al cliente
         provider_response = send_text_message(phone, message)
     except WhatsAppServiceError as exc:
         raise RuntimeError(str(exc)) from exc
 
+    # Registra el mensaje en la conversación
     raw_payload = {
         "source": "dashboard_human",
         "provider_response": provider_response,
@@ -116,6 +122,7 @@ def reply_as_advisor(case_id: str, content: str) -> dict[str, Any]:
         raw_payload=raw_payload,
     )
 
+    # Actualiza el transcript del caso con el nuevo mensaje del asesor
     transcript = case.get("transcript") if isinstance(case.get("transcript"), list) else []
     transcript = list(transcript)
     transcript.append(
@@ -126,6 +133,7 @@ def reply_as_advisor(case_id: str, content: str) -> dict[str, Any]:
             "source": "dashboard_human",
         }
     )
+    # Mantiene solo los últimos 20 mensajes para no crecer indefinidamente
     updated_case = handoff_repository.update_handoff_case(
         case_id,
         status="assigned",

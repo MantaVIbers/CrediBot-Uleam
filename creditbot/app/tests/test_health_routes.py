@@ -4,19 +4,21 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+# Verifica que la ruta raíz muestre la consola de demo de CrediBot
 def test_root_muestra_inicio_credibot():
     client = TestClient(app)
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "CrediBot" in response.text
-    assert "Consola de demo" in response.text
-    assert "/docs" in response.text
-    assert "/simulate/message" in response.text
-    assert "/admin/handoff" in response.text
-    assert "593999000111" in response.text
+    assert "CrediBot" in response.text         # Nombre del bot visible
+    assert "Consola de demo" in response.text  # Título de la consola
+    assert "/docs" in response.text            # Enlace a documentación API
+    assert "/simulate/message" in response.text  # Ruta de simulación
+    assert "/admin/handoff" in response.text   # Ruta de administración
+    assert "593999000111" in response.text     # Número de prueba visible
 
 
+# Verifica que el endpoint de salud IA no exponga la API key
 def test_ai_health_no_expone_api_key(monkeypatch):
     from app.api import routes_health
 
@@ -35,9 +37,11 @@ def test_ai_health_no_expone_api_key(monkeypatch):
         "configured": True,
         "model": "gpt-test",
     }
+    # Asegurar que la API key nunca aparezca en la respuesta
     assert "sk-test" not in response.text
 
 
+# Verifica que el endpoint de salud WhatsApp no exponga tokens secretos
 def test_whatsapp_health_sin_secretos(monkeypatch):
     from app.api import routes_health
 
@@ -59,4 +63,5 @@ def test_whatsapp_health_sin_secretos(monkeypatch):
     assert body["configured"] is True
     assert body["missing_env"] == []
     assert body["webhook_path"] == "/webhook/whatsapp"
+    # Asegurar que el token nunca aparezca en la respuesta
     assert "token" not in response.text

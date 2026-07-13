@@ -50,6 +50,7 @@ def update_state(conversation_id: str, new_state: str) -> dict[str, Any]:
         .update(
             {
                 "current_state": new_state,
+                # Registra la marca de tiempo de la actualización en UTC
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
         )

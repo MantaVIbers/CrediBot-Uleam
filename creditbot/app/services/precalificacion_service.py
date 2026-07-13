@@ -21,6 +21,7 @@ TOOL_NAME = "precalificar_por_cedula"
 
 def _profile_flags(profile: dict[str, Any] | None) -> dict[str, Any]:
     """Extrae, con valores por defecto seguros, los campos del perfil que usan las reglas."""
+    # Si no hay perfil (thin_file), retorna valores por defecto seguros
     if not profile:
         return {
             "score": 0,
@@ -88,6 +89,7 @@ def precalificar_por_cedula(
     """
     started_at = time.perf_counter()
 
+    # Paso 1: Valida la cédula ecuatoriana (algoritmo módulo 10)
     es_valida, motivo = validate_cedula(cedula)
     if not es_valida:
         resultado = {
@@ -99,9 +101,11 @@ def precalificar_por_cedula(
         _audit(cedula, ingreso_neto, plazo_meses, monto_solicitado, resultado, started_at, conversation_id)
         return resultado
 
+    # Paso 2: Consulta el perfil crediticio en el buró simulado
     profile = credit_profile_repository.get_profile_by_cedula(cedula)
     flags = _profile_flags(profile)
 
+    # Paso 3: Aplica las reglas de negocio deterministas
     calculo = credit_rules.precalificar(
         flags["score"],
         ingreso_neto,
@@ -114,6 +118,7 @@ def precalificar_por_cedula(
         monto_solicitado=monto_solicitado,
     )
 
+    # Construye el resultado final con datos de presentación
     resultado = {
         "ok": True,
         "cedula_masked": mask_cedula(cedula),

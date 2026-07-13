@@ -34,9 +34,12 @@ class MetaWhatsAppProvider(WhatsAppProvider):
                 "META_WHATSAPP_PHONE_NUMBER_ID no está configurado."
             )
 
+        # Construye la URL del Graph API con la versión configurada
         version = settings.meta_graph_api_version.strip("/") or "v21.0"
         phone_number_id = settings.meta_whatsapp_phone_number_id
         url = f"https://graph.facebook.com/{version}/{phone_number_id}/messages"
+
+        # Cuerpo del mensaje en formato Meta Cloud API
         payload = {
             "messaging_product": "whatsapp",
             "to": format_meta_phone(to_phone),
@@ -64,21 +67,27 @@ class MetaWhatsAppProvider(WhatsAppProvider):
 
 def extract_meta_messages(payload: dict[str, Any]) -> list[dict[str, Any]]:
     """Extrae mensajes de texto entrantes del webhook JSON de Meta."""
+    # Lista de mensajes normalizados que se retornarán
     messages: list[dict[str, Any]] = []
+
+    # Recorre la estructura anidada del webhook: entry -> changes -> messages
     for entry in payload.get("entry") or []:
         for change in entry.get("changes") or []:
             value = change.get("value") or {}
             for item in value.get("messages") or []:
+                # Solo procesa mensajes de tipo texto
                 if item.get("type") != "text":
                     continue
                 phone = normalize_meta_phone(item.get("from", ""))
                 body = ((item.get("text") or {}).get("body") or "").strip()
+                # Omite mensajes vacíos o sin número válido
                 if not phone or not body:
                     continue
                 messages.append(
                     {
                         "phone": phone,
                         "message": body,
+                        # Guarda datos originales para auditoría
                         "raw_payload": {
                             "provider": "meta",
                             "from": item.get("from"),

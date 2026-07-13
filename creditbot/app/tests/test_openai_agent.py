@@ -4,6 +4,7 @@ import openai
 from app.agent import openai_agent
 
 
+# Verifica que sin API key se retorne la respuesta base sin modificar
 def test_render_reply_devuelve_base_sin_api_key(monkeypatch):
     monkeypatch.setattr(openai_agent.settings, "openai_enable_ai", True)
     monkeypatch.setattr(openai_agent.settings, "openai_api_key", "")
@@ -17,6 +18,7 @@ def test_render_reply_devuelve_base_sin_api_key(monkeypatch):
     assert reply == "Selecciona una opcion: 1. Si 2. No"
 
 
+# Verifica que con IA desactivada se retorne la respuesta base
 def test_render_reply_respeta_flag_desactivado(monkeypatch):
     monkeypatch.setattr(openai_agent.settings, "openai_enable_ai", False)
     monkeypatch.setattr(openai_agent.settings, "openai_api_key", "sk-test")
@@ -30,6 +32,7 @@ def test_render_reply_respeta_flag_desactivado(monkeypatch):
     assert reply == "Texto base"
 
 
+# Verifica que con configuración completa se invoque a OpenAI con el contexto adecuado
 def test_render_reply_invoca_openai_si_esta_configurado(monkeypatch):
     llamadas = []
 
@@ -56,9 +59,9 @@ def test_render_reply_invoca_openai_si_esta_configurado(monkeypatch):
         state="MENU",
         user_message="hola",
         context={
-            "state_before": "ASK_AMOUNT",
-            "state_after": "ASK_AMOUNT",
-            "pending_step": "indica el monto que deseas solicitar.",
+            "state_before": "ASK_AMOUNT",      # Estado previo para el contexto
+            "state_after": "ASK_AMOUNT",        # Estado posterior
+            "pending_step": "indica el monto que deseas solicitar.",  # Paso pendiente
             "rag_context": [
                 {
                     "title": "Requisitos básicos",
@@ -70,8 +73,8 @@ def test_render_reply_invoca_openai_si_esta_configurado(monkeypatch):
     )
 
     assert reply == "Respuesta redactada por IA"
-    assert llamadas[0]["model"] == "gpt-test"
-    assert "Texto base con opcion 1" in llamadas[0]["input"]
-    assert "Estado anterior: ASK_AMOUNT" in llamadas[0]["input"]
-    assert "Paso pendiente para continuar" in llamadas[0]["input"]
-    assert "Debe entregar nombre, cédula y monto." in llamadas[0]["input"]
+    assert llamadas[0]["model"] == "gpt-test"  # Verifica el modelo usado
+    assert "Texto base con opcion 1" in llamadas[0]["input"]  # Respuesta base incluida
+    assert "Estado anterior: ASK_AMOUNT" in llamadas[0]["input"]  # Estado incluido
+    assert "Paso pendiente para continuar" in llamadas[0]["input"]  # Paso pendiente incluido
+    assert "Debe entregar nombre, cédula y monto." in llamadas[0]["input"]  # RAG incluido

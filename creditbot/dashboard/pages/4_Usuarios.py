@@ -31,10 +31,12 @@ if df.empty:
     st.info("No existen usuarios registrados.")
     st.stop()
 
+# Campo de búsqueda para filtrar por nombre o teléfono
 search = st.text_input("Buscar por nombre o telefono").strip().lower()
 
 filtered_df = df.copy()
 if search:
+    # Filtrar usuarios que coincidan con el término de búsqueda
     full_name = filtered_df.get("full_name", pd.Series("", index=filtered_df.index))
     phone = filtered_df.get("phone", pd.Series("", index=filtered_df.index))
     mask = full_name.fillna("").str.lower().str.contains(search, na=False)

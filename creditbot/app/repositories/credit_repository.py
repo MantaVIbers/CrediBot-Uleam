@@ -139,6 +139,7 @@ def save_result(
                 "estimated_payment": estimated_payment,
                 "payment_capacity": payment_capacity,
                 "result": result,
+                # Marca la solicitud como completada al guardar el resultado
                 "status": "completed",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
@@ -166,6 +167,7 @@ def save_result_v2(
         .table("credit_requests")
         .update(
             {
+                # Campos de calificación crediticia
                 "credit_score": credit_score,
                 "score_category": score_category,
                 "max_amount": max_amount,

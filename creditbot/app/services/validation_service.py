@@ -14,7 +14,9 @@ def validate_cedula(value: str) -> tuple[bool, str | None]:
 def parse_numeric_value(value: str) -> float:
     """Convierte texto numérico a float, soportando coma decimal y separador de miles."""
     cleaned = value.strip().replace(" ", "")
+    # Eliminar símbolos de moneda
     cleaned = cleaned.replace("$", "").replace("usd", "").replace("USD", "")
+    # Manejar coma como separador decimal (formato Latinoamérica: 1.234,56)
     if "," in cleaned:
         parts = cleaned.split(",")
         if len(parts) == 2 and len(parts[1]) in (1, 2):
@@ -22,6 +24,7 @@ def parse_numeric_value(value: str) -> float:
         else:
             cleaned = cleaned.replace(",", "")
     elif "." in cleaned:
+        # Detectar si el punto es separador de miles (1.234.567) en lugar de decimal
         integer_part, fractional_part = cleaned.rsplit(".", 1)
         if len(fractional_part) == 3 and integer_part.replace(".", "").isdigit():
             cleaned = cleaned.replace(".", "")

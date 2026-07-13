@@ -38,6 +38,7 @@ def get_user_by_id(user_id: str) -> dict[str, Any] | None:
 def create_user(phone: str, full_name: str | None = None) -> dict[str, Any]:
     """Crea un nuevo usuario con el teléfono dado."""
     payload: dict[str, Any] = {"phone": phone}
+    # Solo incluye el nombre si se proporcionó
     if full_name:
         payload["full_name"] = full_name
 
@@ -74,6 +75,7 @@ def update_cedula_consent(user_id: str, cedula: str) -> dict[str, Any]:
     """
     now = datetime.now(timezone.utc).isoformat()
     try:
+        # Intenta actualizar cédula y consentimiento juntos
         response = (
             get_supabase_client()
             .table("users")
@@ -93,6 +95,7 @@ def update_cedula_consent(user_id: str, cedula: str) -> dict[str, Any]:
     except Exception:
         pass
 
+    # Fallback: si falla el update completo (ej. constraint UNIQUE), solo registra consentimiento
     response = (
         get_supabase_client()
         .table("users")

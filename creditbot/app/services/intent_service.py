@@ -11,6 +11,7 @@ def _normalize(value: str) -> str:
 
 
 def _has_any(text: str, words: set[str]) -> bool:
+    """Verifica si el texto contiene alguna de las palabras como palabra completa."""
     return any(re.search(rf"\b{re.escape(word)}\b", text) for word in words)
 
 
@@ -51,6 +52,7 @@ def looks_like_numeric_answer(value: str) -> bool:
     if not re.search(r"\d", text):
         return False
     # "12", "12 meses", "en 12 plazos", "$1.200", "1500 dolares"
+    # Detectar patrones numéricos: "12", "12 meses", "$1.200", "1500 dolares"
     return bool(
         re.search(
             r"(?:^|[\s$])\d[\d.,]*\s*(?:meses|mes|plazos|plazo|dolares|usd|\$)?\b",

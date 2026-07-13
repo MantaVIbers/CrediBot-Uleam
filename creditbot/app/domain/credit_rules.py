@@ -96,10 +96,12 @@ def calcular_cuota(monto: float, tea: float, plazo_meses: int) -> float:
     if monto <= 0:
         return 0.0
 
+    # Calcular tasa mensual a partir de la TEA
     r = tea / 12
     if r == 0:
         return round(monto / plazo_meses, 2)
 
+    # Aplicar fórmula de amortización francesa
     factor = (1 + r) ** plazo_meses
     cuota = monto * (r * factor) / (factor - 1)
     return round(cuota, 2)
@@ -132,6 +134,7 @@ def calcular_monto_maximo(
     """
     tea = tasa_anual(categoria)
     capacidad = calcular_capacidad_pago(ingreso_neto, cuotas_actuales)
+    # Límite superior según la categoría del score
     techo_categoria = round(MULTIPLICADOR_MONTO.get(categoria, 0.0) * ingreso_neto, 2)
     monto_por_capacidad = calcular_monto_por_capacidad(capacidad, tea, plazo_meses)
 

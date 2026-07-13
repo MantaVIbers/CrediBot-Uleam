@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 TOOL_NAME = "consultar_politica_credito"
 
+# Prompt del sistema que define el comportamiento del asistente IA
 SYSTEM_PROMPT = """Eres CrediBot, asistente de precalificación crediticia de ULEAM (demo académica).
 Responde en español, claro y breve (máximo 6 oraciones).
 Usa SOLO la información del contexto de política. Si no está en el contexto, dilo honestamente.
@@ -74,6 +75,7 @@ def answer_credit_question(question: str, conversation_id: str | None = None) ->
     started = time.perf_counter()
     chunks: list[str] = []
     try:
+        # Recupera fragmentos relevantes de la política de crédito
         if rag_service.is_rag_available():
             chunks = rag_service.retrieve_context(cleaned)
         context = rag_service.build_context_block(chunks)
@@ -82,6 +84,7 @@ def answer_credit_question(question: str, conversation_id: str | None = None) ->
 
         client = OpenAI(api_key=settings.openai_api_key)
         user_content = cleaned
+        # Inyecta el contexto de política si está disponible
         if context:
             user_content = f"Contexto de política:\n{context}\n\nPregunta del usuario:\n{cleaned}"
 
@@ -94,6 +97,7 @@ def answer_credit_question(question: str, conversation_id: str | None = None) ->
                 {"role": "user", "content": user_content},
             ],
         )
+        # Extrae la respuesta y usa fallback si viene vacía
         answer = (response.choices[0].message.content or "").strip() or _fallback_answer()
         latency_ms = int((time.perf_counter() - started) * 1000)
         _audit(cleaned, answer, chunks=chunks, success=True, latency_ms=latency_ms, conversation_id=conversation_id)

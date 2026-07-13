@@ -23,12 +23,13 @@ def evaluate_credit_request(
     estimated_payment = calculate_estimated_payment(amount, term_months)
     payment_capacity = calculate_payment_capacity(monthly_income)
 
+    # Lógica de decisión: compara cuota vs capacidad de pago
     if estimated_payment <= payment_capacity:
-        result = CREDIT_RESULT_PREAPPROVED
+        result = CREDIT_RESULT_PREAPPROVED  # Cuota cabe en el 30% del ingreso
     elif estimated_payment <= payment_capacity * 1.20:
-        result = CREDIT_RESULT_OBSERVED
+        result = CREDIT_RESULT_OBSERVED  # Hasta 20% por encima: requiere revisión
     else:
-        result = CREDIT_RESULT_NOT_QUALIFIED
+        result = CREDIT_RESULT_NOT_QUALIFIED  # Supera la capacidad máxima
 
     return {
         "estimated_payment": estimated_payment,

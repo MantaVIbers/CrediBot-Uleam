@@ -13,6 +13,7 @@ import math
 import sys
 from pathlib import Path
 
+# Configurar la ruta del proyecto para importaciones
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -29,6 +30,7 @@ def main() -> None:
 
     client = OpenAI(api_key=settings.openai_api_key)
     chunks = list_all_chunks()
+    # Filtrar chunks que aún no tienen embedding generado
     pending = [c for c in chunks if not c.get("embedding")]
     if not pending:
         print("No hay chunks pendientes de indexar.")

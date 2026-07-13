@@ -7,6 +7,7 @@ from app.services import handoff_service
 from dashboard.services import supabase_dashboard
 
 
+# Clase fake que simula consultas encadenable de Supabase
 class _FakeQuery:
     def __init__(self, recorder):
         self._recorder = recorder
@@ -38,12 +39,12 @@ class _FakeQuery:
     def execute(self):
         if "insert_payload" in self._recorder:
             payload = self._recorder["insert_payload"]
-            return SimpleNamespace(data=[{"id": "msg-1", **payload}])
+            return SimpleNamespace(data=[{"id": "msg-1", **payload}])  # Retorna con ID asignado
         if "payload" in self._recorder:
             return SimpleNamespace(
                 data=[{"id": self._recorder["eq"][1], **self._recorder["payload"]}]
             )
-        return SimpleNamespace(data=[{"id": "msg-1", "content": "Hola"}])
+        return SimpleNamespace(data=[{"id": "msg-1", "content": "Hola"}])  # Respuesta por defecto
 
 
 class _FakeClient:
@@ -55,6 +56,7 @@ class _FakeClient:
         return _FakeQuery(self._recorder)
 
 
+# Verifica que cerrar un caso de derivación actualice su estado a "closed"
 def test_cerrar_caso_derivado_actualiza_estado(monkeypatch):
     recorder = {}
     monkeypatch.setattr(supabase_dashboard, "_backend_api_url", lambda: "")
@@ -70,11 +72,12 @@ def test_cerrar_caso_derivado_actualiza_estado(monkeypatch):
     assert result["id"] == "case-1"
     assert result["status"] == "closed"
     assert recorder["table"] == "handoff_cases"
-    assert recorder["payload"]["status"] == "closed"
-    assert "updated_at" in recorder["payload"]
-    assert recorder["eq"] == ("id", "case-1")
+    assert recorder["payload"]["status"] == "closed"       # Estado actualizado
+    assert "updated_at" in recorder["payload"]             # Timestamp de actualización
+    assert recorder["eq"] == ("id", "case-1")              # Filtro por ID
 
 
+# Verifica que la consulta de mensajes lea el historial correcto
 def test_obtener_mensajes_conversacion_lee_historial(monkeypatch):
     recorder = {}
     monkeypatch.setattr(
@@ -87,11 +90,12 @@ def test_obtener_mensajes_conversacion_lee_historial(monkeypatch):
 
     assert result == [{"id": "msg-1", "content": "Hola"}]
     assert recorder["table"] == "messages"
-    assert recorder["select"] == "*"
-    assert recorder["eq"] == ("conversation_id", "conv-1")
-    assert recorder["order"] == ("created_at", False)
+    assert recorder["select"] == "*"              # Selecciona todas las columnas
+    assert recorder["eq"] == ("conversation_id", "conv-1")  # Filtra por conversación
+    assert recorder["order"] == ("created_at", False)        # Orden cronológico ascendente
 
 
+# Verifica que la respuesta humana se envíe al backend correctamente
 def test_enviar_respuesta_humana_llama_backend(monkeypatch):
     calls = {}
 
@@ -119,11 +123,12 @@ def test_enviar_respuesta_humana_llama_backend(monkeypatch):
     )
 
     assert calls["method"] == "POST"
-    assert calls["path"] == "/admin/handoff/case-1/reply"
-    assert calls["json"] == {"message": "Hola, soy el asesor."}
-    assert result["content"] == "Hola, soy el asesor."
+    assert calls["path"] == "/admin/handoff/case-1/reply"   # Ruta del endpoint
+    assert calls["json"] == {"message": "Hola, soy el asesor."}  # Cuerpo del mensaje
+    assert result["content"] == "Hola, soy el asesor."      # Contenido en la respuesta
 
 
+# Verifica que la respuesta como asesor envíe WhatsApp y guarde el mensaje
 def test_reply_as_advisor_envia_whatsapp_y_persiste(monkeypatch):
     monkeypatch.setattr(
         handoff_service.handoff_repository,
@@ -161,9 +166,10 @@ def test_reply_as_advisor_envia_whatsapp_y_persiste(monkeypatch):
 
     assert result["phone"] == "593999000111"
     assert result["message"]["content"] == "Respuesta del asesor"
-    assert result["case"]["status"] == "assigned"
+    assert result["case"]["status"] == "assigned"  # Estado cambia a asignado
 
 
+# Verifica que no se permita enviar mensajes vacíos como asesor
 def test_reply_as_advisor_rechaza_vacio():
     with pytest.raises(ValueError, match="Escribe un mensaje"):
         handoff_service.reply_as_advisor("case-1", "   ")

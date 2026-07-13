@@ -189,6 +189,7 @@ def confirm_data_message(data: dict) -> str:
 
 def _result_details(data: dict) -> str:
     """Bloque común de detalles numéricos de la precalificación v2."""
+    # Convertir TEA de decimal a porcentaje para mostrar al usuario
     tea_pct = float(data.get("tea", 0.0)) * 100
     return (
         f"Categoría de score: {data['categoria']}\n"

@@ -31,6 +31,7 @@ def whatsapp_health_check():
         configured = bool(
             settings.meta_whatsapp_token and settings.meta_whatsapp_phone_number_id
         )
+        # Construir lista de variables de entorno faltantes para Meta
         missing = [
             name
             for name, ok in (

@@ -234,6 +234,8 @@ def _build_ai_context(
 
 
 def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = None) -> str:
+    """Motor principal: recibe un mensaje de WhatsApp, ejecuta la lógica del estado actual y retorna la respuesta."""
+    # Obtener o crear el usuario y su conversación activa
     user = user_repository.get_or_create_user(phone)
     user_id = user["id"]
 
@@ -241,10 +243,12 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     conversation_id = conversation["id"]
     state = conversation["current_state"]
 
+    # Guardar el mensaje entrante en la base de datos
     message_repository.save_inbound_message(
         conversation_id, user_id, text, raw_payload=raw_payload
     )
 
+    # Verificar si el usuario solicita un asesor humano (excepto en estados finales)
     normalized_text = text.strip().lower()
     if state not in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE} and _contains_handoff_keyword(
         normalized_text
@@ -260,6 +264,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     next_state = state
     rag_chunks: list[rag_service.RagChunk] = []
 
+    # Si el usuario hace una pregunta de política (no numérica), responder con RAG sin cambiar de estado
     if (
         state not in {START, HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE}
         and intent_service.is_policy_question(text)
@@ -463,6 +468,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
         elif confirmation == "1":
             _reset_validation_failures(conversation_id)
             request = credit_repository.get_draft_request(conversation_id)
+            # Flujo exitoso: usuario confirmó → ejecutar precalificación con el servicio v2
             if not request:
                 response = message_service.welcome_message()
                 next_state = MENU
@@ -483,6 +489,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     )
                     next_state = CONFIRM_DATA
                 else:
+                    # Guardar resultado de precalificación y construir respuesta según categoría
                     credit_repository.save_result_v2(
                         request["id"],
                         credit_score=evaluation.get("credit_score"),

@@ -83,6 +83,7 @@ def render_reply(
     try:
         from openai import OpenAI
 
+        # Crear cliente de OpenAI y enviar solicitud de redacción
         client = OpenAI(api_key=settings.openai_api_key)
         response = client.responses.create(
             model=settings.openai_model,
@@ -96,6 +97,7 @@ def render_reply(
             ),
             max_output_tokens=220,
         )
+        # Extraer texto generado; si está vacío, usar respuesta base
         rendered = (getattr(response, "output_text", "") or "").strip()
         return rendered or base_reply
     except Exception as exc:  # pragma: no cover - defensa para no tumbar WhatsApp

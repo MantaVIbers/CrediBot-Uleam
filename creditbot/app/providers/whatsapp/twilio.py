@@ -9,6 +9,7 @@ from app.providers.whatsapp.base import WhatsAppProvider, WhatsAppProviderError
 
 def format_twilio_whatsapp_number(phone: str) -> str:
     """Formatea un número al formato 'whatsapp:+XXXXXXXX' requerido por Twilio."""
+    # Limpia prefijos existentes y reconstruye en formato Twilio
     cleaned = phone.replace("whatsapp:", "").replace("+", "").strip()
     return f"whatsapp:+{cleaned}"
 
@@ -29,6 +30,7 @@ class TwilioWhatsAppProvider(WhatsAppProvider):
         if not settings.twilio_whatsapp_from:
             raise WhatsAppProviderError("TWILIO_WHATSAPP_FROM no está configurado.")
 
+        # Construye la URL del API de Twilio y el cuerpo del mensaje
         url = (
             "https://api.twilio.com/2010-04-01/Accounts/"
             f"{settings.twilio_account_sid}/Messages.json"

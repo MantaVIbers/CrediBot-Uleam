@@ -10,7 +10,9 @@ def extract_twilio_message(
     message_sid: str | None = None,
 ) -> dict[str, Any] | None:
     """Extrae teléfono, mensaje y payload crudo desde los parámetros de Twilio."""
+    # Normalizar el número de teléfono al formato estándar
     phone = normalize_twilio_phone(from_phone)
+    # Eliminar espacios en blanco del mensaje
     message = body.strip()
 
     if not phone or not message:

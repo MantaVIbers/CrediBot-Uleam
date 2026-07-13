@@ -22,6 +22,7 @@ def _expected_check_digit(first_nine: str) -> int:
     """Calcula el dígito verificador esperado a partir de los primeros 9 dígitos."""
     total = 0
     for digit_char, coefficient in zip(first_nine, _COEFFICIENTS):
+        # Multiplicar dígito por coeficiente; si el producto es >= 10, restar 9
         product = int(digit_char) * coefficient
         if product >= 10:
             product -= 9
@@ -44,6 +45,7 @@ def validate_cedula(cedula: str) -> tuple[bool, str | None]:
     if cedula is None:
         return False, "La cédula es obligatoria."
 
+    # Eliminar espacios y guiones que algunos usuarios podrían ingresar
     cleaned = cedula.strip().replace("-", "").replace(" ", "")
 
     if not cleaned.isdigit():

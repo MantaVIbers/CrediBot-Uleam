@@ -11,12 +11,14 @@ def save_inbound_message(
     raw_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Guarda un mensaje entrante del usuario."""
+    # Dirección 'inbound' indica que el mensaje viene del usuario
     payload: dict[str, Any] = {
         "conversation_id": conversation_id,
         "user_id": user_id,
         "direction": "inbound",
         "content": content,
     }
+    # Adjunta el payload original del proveedor si se proporcionó
     if raw_payload is not None:
         payload["raw_payload"] = raw_payload
 
@@ -31,12 +33,14 @@ def save_outbound_message(
     raw_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Guarda un mensaje saliente enviado por el bot."""
+    # Dirección 'outbound' indica que el mensaje viene del bot
     payload: dict[str, Any] = {
         "conversation_id": conversation_id,
         "user_id": user_id,
         "direction": "outbound",
         "content": content,
     }
+    # Adjunta el payload original del proveedor si se proporcionó
     if raw_payload is not None:
         payload["raw_payload"] = raw_payload
 

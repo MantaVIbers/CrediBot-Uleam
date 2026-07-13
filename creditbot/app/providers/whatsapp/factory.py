@@ -7,14 +7,17 @@ from app.providers.whatsapp.meta import MetaWhatsAppProvider
 from app.providers.whatsapp.twilio import TwilioWhatsAppProvider
 
 
+# Cachea la instancia del proveedor para evitar recrearla en cada llamada
 @lru_cache
 def get_whatsapp_provider() -> WhatsAppProvider:
     """Retorna el proveedor configurado en WHATSAPP_PROVIDER."""
+    # Normaliza el valor de configuración; por defecto usa Twilio
     provider = (settings.whatsapp_provider or "twilio").strip().lower()
     if provider == "meta":
         return MetaWhatsAppProvider()
     if provider == "twilio":
         return TwilioWhatsAppProvider()
+    # Si el proveedor no es válido, lanza error con opciones disponibles
     raise WhatsAppProviderError(
         f"Proveedor de WhatsApp desconocido: {provider}. Usa 'twilio' o 'meta'."
     )

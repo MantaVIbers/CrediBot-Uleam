@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Configurar la ruta del proyecto para importaciones
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -18,6 +19,7 @@ from app.repositories.supabase_client import get_supabase_client  # noqa: E402
 from app.repositories.user_repository import get_or_create_user  # noqa: E402
 from app.services.conversation_service import process_message  # noqa: E402
 
+# Prefijo telefónico base para generar números de prueba únicos
 PHONE_BASE = 593991000000
 
 
@@ -333,6 +335,7 @@ def _audit_sample() -> list[dict]:
 
 def main() -> None:
     started = datetime.now(timezone.utc)
+    # Ejecutar todos los escenarios de prueba
     scenarios = [_execute(s) for s in _build_scenarios()]
     audit = _audit_sample()
     passed = sum(1 for s in scenarios if s.passed)
@@ -362,6 +365,7 @@ def main() -> None:
         ],
     }
 
+    # Guardar reporte en archivo JSON y imprimir resumen
     out = ROOT.parent / "reporte_chat_results.json"
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({"passed": passed, "total": len(scenarios), "failed_ids": [s.id for s in failed]}, ensure_ascii=False))

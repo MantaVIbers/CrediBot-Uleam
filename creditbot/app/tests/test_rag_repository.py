@@ -2,6 +2,7 @@
 from app.repositories import rag_repository
 
 
+# Verifica que el repositorio maneje correctamente una tabla vacía de chunks
 def test_list_all_chunks_empty(monkeypatch):
     class FakeResponse:
         data = []

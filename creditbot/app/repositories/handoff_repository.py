@@ -14,12 +14,14 @@ def create_handoff_case(
     transcript: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Crea un caso de derivación a asesor humano."""
+    # Construye el payload base con los campos requeridos
     payload: dict[str, Any] = {
         "user_id": user_id,
         "conversation_id": conversation_id,
         "reason": reason,
         "status": "pending",
     }
+    # Agrega campos opcionales solo si se proporcionaron
     if credit_request_id:
         payload["credit_request_id"] = credit_request_id
     if handoff_summary:
@@ -79,9 +81,11 @@ def update_handoff_case(
     transcript: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Actualiza estado y/o transcript de un caso."""
+    # Siempre actualiza la marca de tiempo
     payload: dict[str, Any] = {
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
+    # Agrega campos opcionales solo si se proporcionaron
     if status is not None:
         payload["status"] = status
     if transcript is not None:

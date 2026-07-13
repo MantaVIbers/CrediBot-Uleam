@@ -63,6 +63,7 @@ class RedisSessionStore:
         self._redis.delete(key)
 
     def incr(self, key: str) -> int:
+        """Incrementa el contador y renueva el TTL para evitar que expire."""
         value = int(self._redis.incr(key))
         self._redis.expire(key, self._ttl)
         return value

@@ -42,22 +42,26 @@ class RagChunk:
 
 
 def _normalize(value: str) -> str:
+    """Normaliza texto: elimina acentos y convierte a minúsculas."""
     text = unicodedata.normalize("NFKD", value or "")
     text = "".join(char for char in text if not unicodedata.combining(char))
     return text.lower()
 
 
 def _tokens(value: str) -> set[str]:
+    """Extrae palabras significativas (más de 2 caracteres, excluyendo stopwords)."""
     words = set(re.findall(r"[a-z0-9]+", _normalize(value)))
     return {word for word in words if len(word) > 2 and word not in STOPWORDS}
 
 
 def _iter_policy_sections() -> list[tuple[str, str, str]]:
+    """Lee archivos .md de políticas y extrae secciones delimitadas por ## (título, archivo, contenido)."""
     sections: list[tuple[str, str, str]] = []
     for path in sorted(POLICY_DIR.glob("*.md")):
         current_title = path.stem
         buffer: list[str] = []
         for line in path.read_text(encoding="utf-8").splitlines():
+            # Cada encabezado ## inicia una nueva sección
             if line.startswith("## "):
                 if buffer:
                     sections.append((current_title, path.name, "\n".join(buffer).strip()))
@@ -79,6 +83,7 @@ def search_policies(query: str, limit: int = 2) -> list[RagChunk]:
     results: list[RagChunk] = []
     for title, source, content in _iter_policy_sections():
         section_tokens = _tokens(f"{title} {content}")
+        # Puntuación = cantidad de tokens compartidos entre consulta y sección
         score = len(query_tokens & section_tokens)
         if score > 0:
             results.append(RagChunk(title=title, source=source, content=content, score=score))
