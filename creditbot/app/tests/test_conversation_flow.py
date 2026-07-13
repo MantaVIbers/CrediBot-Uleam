@@ -127,6 +127,7 @@ def test_conversation_flow_basic(
     mock_update_state.side_effect = update_state_side_effect
     mock_get_draft.side_effect = [
         _draft_request(),                                                        # ASK_CEDULA
+        _draft_request(cedula=CEDULA),                                           # CONSENT (lee cédula persistida)
         _draft_request(cedula=CEDULA),                                           # ASK_AMOUNT
         _draft_request(cedula=CEDULA, requested_amount=500),                     # ASK_TERM
         _draft_request(cedula=CEDULA, requested_amount=500, term_months=12),     # ASK_INCOME (lectura)

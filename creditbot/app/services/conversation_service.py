@@ -234,8 +234,10 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             next_state = CONSENT
         elif text.strip() == "1":
             _reset_validation_failures(conversation_id)
-            if user.get("cedula"):
-                user_repository.update_cedula_consent(user_id, user["cedula"])
+            request = credit_repository.get_draft_request(conversation_id)
+            cedula = (request or {}).get("cedula") or user.get("cedula")
+            if cedula:
+                user_repository.update_cedula_consent(user_id, cedula)
             response = message_service.ask_amount_message(user.get("full_name"))
             next_state = ASK_AMOUNT
         else:
