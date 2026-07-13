@@ -4,6 +4,48 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+def test_list_handoff_requiere_password(monkeypatch):
+    from app.api import deps
+
+    monkeypatch.setattr(deps.settings, "admin_dashboard_password", "secret")
+
+    client = TestClient(app)
+    response = client.get("/admin/handoff")
+    assert response.status_code == 401
+
+
+def test_list_handoff_rechaza_password_incorrecta(monkeypatch):
+    from app.api import deps
+
+    monkeypatch.setattr(deps.settings, "admin_dashboard_password", "secret")
+
+    client = TestClient(app)
+    response = client.get(
+        "/admin/handoff",
+        headers={"X-Admin-Password": "otra"},
+    )
+    assert response.status_code == 401
+
+
+def test_list_handoff_ok(monkeypatch):
+    from app.api import deps, routes_admin
+
+    monkeypatch.setattr(deps.settings, "admin_dashboard_password", "secret")
+    monkeypatch.setattr(
+        routes_admin,
+        "get_open_handoff_cases",
+        lambda: [{"id": "case-1", "status": "pending"}],
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/admin/handoff",
+        headers={"X-Admin-Password": "secret"},
+    )
+    assert response.status_code == 200
+    assert response.json()["items"][0]["id"] == "case-1"
+
+
 def test_reply_handoff_requiere_password(monkeypatch):
     from app.api import deps
 

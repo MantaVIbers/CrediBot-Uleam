@@ -20,7 +20,7 @@ class HandoffReplyRequest(BaseModel):
 
 
 @router.get("/requests")
-def list_credit_requests():
+def list_credit_requests(_: None = Depends(require_admin_password)):
     """Retorna todas las solicitudes de crédito."""
     response = (
         get_supabase_client()
@@ -33,13 +33,13 @@ def list_credit_requests():
 
 
 @router.get("/handoff")
-def list_handoff_cases():
+def list_handoff_cases(_: None = Depends(require_admin_password)):
     """Retorna los casos de derivación abiertos (pending/assigned)."""
     return {"items": get_open_handoff_cases()}
 
 
 @router.get("/handoff/pending")
-def list_pending_handoff_cases():
+def list_pending_handoff_cases(_: None = Depends(require_admin_password)):
     """Retorna solo casos pendientes (compatibilidad)."""
     return {"items": get_pending_handoff_cases()}
 
@@ -79,7 +79,10 @@ def close_handoff(
 
 
 @router.get("/conversations/{phone}")
-def get_conversation_by_phone(phone: str):
+def get_conversation_by_phone(
+    phone: str,
+    _: None = Depends(require_admin_password),
+):
     """Retorna usuario, conversación y mensajes dado un número de teléfono."""
     user = user_repository.get_user_by_phone(phone)
     if not user:
