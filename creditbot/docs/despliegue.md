@@ -84,6 +84,9 @@ https://credibot-uleam-gjj2.onrender.com/webhook/whatsapp
 | `SUPABASE_URL` | Misma URL del backend |
 | `SUPABASE_SERVICE_ROLE_KEY` | Misma Service Role Key |
 | `ADMIN_DASHBOARD_PASSWORD` | Contraseña del panel admin |
+| `TWILIO_ACCOUNT_SID` | Mismo Account SID del backend para responder desde el panel |
+| `TWILIO_AUTH_TOKEN` | Mismo Auth Token del backend |
+| `TWILIO_WHATSAPP_FROM` | Mismo remitente WhatsApp del backend |
 
 Guía detallada del panel: [`docs/streamlit_dashboard.md`](streamlit_dashboard.md)
 

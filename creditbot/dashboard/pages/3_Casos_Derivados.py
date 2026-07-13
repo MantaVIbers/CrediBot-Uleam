@@ -8,6 +8,8 @@ from components.auth import require_auth
 from services.supabase_dashboard import (
     DashboardConfigError,
     cerrar_caso_derivado,
+    enviar_respuesta_humana,
+    obtener_mensajes_conversacion,
     obtener_casos_derivados,
     obtener_solicitudes,
     obtener_usuarios,
@@ -46,37 +48,102 @@ def _reason_text(reason: object) -> str:
     return labels.get(str(reason), str(_safe_value(reason)))
 
 
-def _transcript_items(value: object) -> list[dict[str, Any]]:
-    """Normaliza el transcript guardado como JSONB."""
-    if isinstance(value, list):
-        return [item for item in value if isinstance(item, dict)]
-    return []
+def _raw_payload(value: object) -> dict[str, Any]:
+    """Normaliza el payload crudo de un mensaje."""
+    return value if isinstance(value, dict) else {}
 
 
-def _message_role(direction: object) -> str:
+def _message_author(item: dict[str, Any]) -> str:
+    """Identifica si el mensaje saliente fue del bot o de un asesor."""
+    direction = item.get("direction")
     if direction == "inbound":
         return "Cliente"
-    if direction == "outbound":
-        return "CrediBot"
-    return "Mensaje"
+
+    raw_payload = _raw_payload(item.get("raw_payload"))
+    if raw_payload.get("source") == "dashboard_human":
+        return "Asesor"
+    return "CrediBot"
 
 
-def _render_transcript(items: list[dict[str, Any]]) -> None:
-    """Muestra los últimos mensajes del caso."""
-    if not items:
-        st.info("Este caso no tiene transcript guardado. Revisa el historial por teléfono.")
+def _render_live_chat(messages: list[dict[str, Any]]) -> None:
+    """Muestra los mensajes guardados en Supabase como conversación."""
+    if not messages:
+        st.info("Todavía no hay mensajes guardados para esta conversación.")
         return
 
-    for item in items:
+    for item in messages:
         direction = item.get("direction")
-        role = _message_role(direction)
+        author = _message_author(item)
         content = item.get("content") or ""
         timestamp = item.get("created_at") or ""
-        with st.chat_message("user" if direction == "inbound" else "assistant"):
-            st.markdown(f"**{role}**")
+        avatar = "user" if direction == "inbound" else "assistant"
+        with st.chat_message(avatar):
+            st.markdown(f"**{author}**")
             st.write(content)
             if timestamp:
                 st.caption(str(timestamp))
+
+
+def _case_context(selected_case: pd.Series) -> dict[str, str]:
+    """Extrae los identificadores necesarios para operar el caso."""
+    return {
+        "case_id": str(selected_case.get("id") or ""),
+        "conversation_id": str(selected_case.get("conversation_id") or ""),
+        "user_id": str(selected_case.get("user_id") or ""),
+        "phone": str(_safe_value(selected_case.get("usuario_phone"), "") or ""),
+    }
+
+
+def _render_chat_messages(selected_case: pd.Series) -> None:
+    """Renderiza solo el historial para permitir refresco periódico."""
+    conversation_id = str(selected_case.get("conversation_id") or "")
+
+    if not conversation_id:
+        st.warning("El caso no tiene conversación asociada.")
+        return
+
+    try:
+        messages = obtener_mensajes_conversacion(conversation_id)
+    except Exception as exc:
+        st.error(f"No se pudo cargar el chat: {exc}")
+        return
+
+    st.caption("El chat consulta Supabase periódicamente mientras esta página esté abierta.")
+    _render_live_chat(messages)
+
+
+def _render_reply_form(selected_case: pd.Series) -> None:
+    """Renderiza el formulario estable para responder como asesor."""
+    context = _case_context(selected_case)
+
+    if not context["conversation_id"] or not context["user_id"]:
+        st.warning("El caso no tiene conversación o usuario asociado.")
+        return
+
+    with st.form(f"human_reply_form_{context['case_id']}", clear_on_submit=True):
+        reply = st.text_area(
+            "Responder como asesor",
+            placeholder="Escribe la respuesta para enviarla por WhatsApp...",
+            height=110,
+        )
+        submitted = st.form_submit_button("Enviar respuesta", type="primary")
+
+    if submitted:
+        try:
+            enviar_respuesta_humana(
+                case_id=context["case_id"],
+                conversation_id=context["conversation_id"],
+                user_id=context["user_id"],
+                phone=context["phone"],
+                content=reply,
+            )
+        except DashboardConfigError as exc:
+            st.warning(str(exc))
+        except Exception as exc:
+            st.error(f"No se pudo enviar la respuesta: {exc}")
+        else:
+            st.success("Respuesta enviada por WhatsApp.")
+            st.rerun()
 
 
 st.set_page_config(
@@ -184,8 +251,23 @@ col2.write(f"**Resultado:** {_safe_value(selected_case.get('solicitud_result'))}
 st.markdown("### Resumen para asesor")
 st.info(str(_safe_value(selected_case.get("handoff_summary"), "Sin resumen guardado.")))
 
-st.markdown("### Últimos mensajes")
-_render_transcript(_transcript_items(selected_case.get("transcript")))
+st.markdown("### Chat en vivo")
+
+auto_refresh = st.toggle("Actualizar chat automaticamente", value=True)
+
+if auto_refresh and hasattr(st, "fragment"):
+
+    @st.fragment(run_every="5s")
+    def _live_chat_fragment() -> None:
+        _render_chat_messages(selected_case)
+
+    _live_chat_fragment()
+else:
+    if st.button("Actualizar chat"):
+        st.rerun()
+    _render_chat_messages(selected_case)
+
+_render_reply_form(selected_case)
 
 st.markdown("### Gestión")
 if st.button("Cerrar caso", type="primary"):

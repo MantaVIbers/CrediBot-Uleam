@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
+import httpx
 import streamlit as st
 from supabase import Client, create_client
 
@@ -70,16 +71,119 @@ def obtener_solicitudes() -> list[dict[str, Any]]:
 
 
 def obtener_casos_derivados() -> list[dict[str, Any]]:
-    """Obtiene los casos derivados pendientes de atención desde Supabase."""
+    """Obtiene los casos derivados abiertos desde Supabase."""
     response = (
         get_supabase_client()
         .table("handoff_cases")
         .select("*")
-        .eq("status", "pending")
+        .neq("status", "closed")
         .order("created_at", desc=True)
         .execute()
     )
     return response.data or []
+
+
+def obtener_mensajes_conversacion(conversation_id: str) -> list[dict[str, Any]]:
+    """Obtiene el historial completo de mensajes de una conversación."""
+    response = (
+        get_supabase_client()
+        .table("messages")
+        .select("*")
+        .eq("conversation_id", conversation_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+    return response.data or []
+
+
+def _format_twilio_whatsapp_number(phone: str) -> str:
+    """Formatea un número al formato requerido por Twilio WhatsApp."""
+    cleaned = phone.replace("whatsapp:", "").replace("+", "").strip()
+    return f"whatsapp:+{cleaned}"
+
+
+def _send_dashboard_whatsapp_message(to_phone: str, message: str) -> dict[str, Any]:
+    """Envía WhatsApp desde el dashboard usando .env o Secrets de Streamlit."""
+    account_sid = _get_env_value("TWILIO_ACCOUNT_SID")
+    auth_token = _get_env_value("TWILIO_AUTH_TOKEN")
+    whatsapp_from = _get_env_value("TWILIO_WHATSAPP_FROM")
+
+    if not account_sid:
+        raise DashboardConfigError("TWILIO_ACCOUNT_SID no está configurado.")
+    if not auth_token:
+        raise DashboardConfigError("TWILIO_AUTH_TOKEN no está configurado.")
+    if not whatsapp_from:
+        raise DashboardConfigError("TWILIO_WHATSAPP_FROM no está configurado.")
+
+    response = httpx.post(
+        f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
+        data={
+            "From": whatsapp_from,
+            "To": _format_twilio_whatsapp_number(to_phone),
+            "Body": message,
+        },
+        auth=(account_sid, auth_token),
+        timeout=30.0,
+    )
+
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise DashboardConfigError(
+            f"Error de Twilio API ({exc.response.status_code}): {exc.response.text}"
+        ) from exc
+
+    return response.json()
+
+
+def enviar_respuesta_humana(
+    *,
+    case_id: str,
+    conversation_id: str,
+    user_id: str,
+    phone: str,
+    content: str,
+) -> dict[str, Any]:
+    """Envía una respuesta humana por WhatsApp y la registra en el historial."""
+    from datetime import datetime, timezone
+
+    message = content.strip()
+    if not message:
+        raise DashboardConfigError("Escribe un mensaje antes de enviar.")
+    if not phone:
+        raise DashboardConfigError("El caso no tiene teléfono asociado.")
+
+    twilio_response = _send_dashboard_whatsapp_message(phone, message)
+
+    raw_payload = {
+        "source": "dashboard_human",
+        "twilio_sid": twilio_response.get("sid"),
+        "twilio_status": twilio_response.get("status"),
+    }
+
+    response = (
+        get_supabase_client()
+        .table("messages")
+        .insert(
+            {
+                "conversation_id": conversation_id,
+                "user_id": user_id,
+                "direction": "outbound",
+                "content": message,
+                "raw_payload": raw_payload,
+            }
+        )
+        .execute()
+    )
+
+    get_supabase_client().table("handoff_cases").update(
+        {
+            "status": "assigned",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+    ).eq("id", case_id).execute()
+
+    return response.data[0]
 
 
 def cerrar_caso_derivado(case_id: str) -> dict[str, Any]:

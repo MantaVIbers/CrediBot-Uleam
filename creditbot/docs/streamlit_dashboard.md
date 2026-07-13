@@ -41,9 +41,13 @@ Edita `creditbot/.env` y configura:
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ADMIN_DASHBOARD_PASSWORD=tu_clave_admin
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
 ```
 
 La clave `SUPABASE_SERVICE_ROLE_KEY` solo debe usarse en backend o panel interno. No debe exponerse en un frontend publico.
+Las credenciales de Twilio permiten responder desde la bandeja de casos derivados.
 
 ## Ejecutar el panel
 
@@ -77,6 +81,9 @@ Variables de entorno en Render:
 SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
 ADMIN_DASHBOARD_PASSWORD=tu_clave_admin
+TWILIO_ACCOUNT_SID=tu-account-sid
+TWILIO_AUTH_TOKEN=tu-auth-token
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
 ```
 
 Al abrir la URL de Render, ingresa la contraseña configurada en `ADMIN_DASHBOARD_PASSWORD`.
