@@ -84,10 +84,17 @@ def obtener_casos_derivados() -> list[dict[str, Any]]:
 
 def cerrar_caso_derivado(case_id: str) -> dict[str, Any]:
     """Marca un caso derivado como cerrado."""
+    from datetime import datetime, timezone
+
     response = (
         get_supabase_client()
         .table("handoff_cases")
-        .update({"status": "closed"})
+        .update(
+            {
+                "status": "closed",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         .eq("id", case_id)
         .execute()
     )

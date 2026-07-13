@@ -41,5 +41,6 @@ def test_cerrar_caso_derivado_actualiza_estado(monkeypatch):
 
     assert result == {"id": "case-1", "status": "closed"}
     assert recorder["table"] == "handoff_cases"
-    assert recorder["payload"] == {"status": "closed"}
+    assert recorder["payload"]["status"] == "closed"
+    assert "updated_at" in recorder["payload"]
     assert recorder["eq"] == ("id", "case-1")
