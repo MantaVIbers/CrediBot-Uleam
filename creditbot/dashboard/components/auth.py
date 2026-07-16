@@ -22,20 +22,12 @@ def _get_admin_password() -> str:
         return ""
 
 
-def _logout() -> None:
-    """Cierra la sesión del dashboard."""
-    st.session_state["dashboard_authenticated"] = False
-    st.rerun()
-
-
 def require_auth() -> None:
     """Verifica que el usuario esté autenticado; si no, muestra el formulario de login."""
     if "dashboard_authenticated" not in st.session_state:
         st.session_state["dashboard_authenticated"] = False
 
     if st.session_state["dashboard_authenticated"]:
-        with st.sidebar:
-            st.button("Cerrar sesion", on_click=_logout)
         return
 
     expected_password = _get_admin_password()

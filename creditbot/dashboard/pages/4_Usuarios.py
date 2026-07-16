@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from components.auth import require_auth
+from components.navigation import render_sidebar
 from services.supabase_dashboard import DashboardConfigError, obtener_usuarios
 from styles import apply_dashboard_styles
 
@@ -13,12 +14,14 @@ st.set_page_config(
     layout="wide",
 )
 
-require_auth()
 apply_dashboard_styles()
+require_auth()
+render_sidebar()
 
 st.markdown(
     """
     <div class="cb-hero">
+      <div class="cb-eyebrow">Base de clientes</div>
       <div class="cb-hero-title">Usuarios</div>
       <p class="cb-hero-subtitle">
         Directorio de clientes que han interactuado con CrediBot.
@@ -79,4 +82,4 @@ extra_columns = [column for column in filtered_df.columns if column not in visib
 display_df = filtered_df[visible_columns + extra_columns]
 
 st.markdown('<div class="cb-section-title">Directorio</div>', unsafe_allow_html=True)
-st.dataframe(display_df, use_container_width=True, hide_index=True)
+st.dataframe(display_df, width="stretch", hide_index=True)

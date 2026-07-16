@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from components.auth import require_auth
+from components.navigation import render_sidebar
 from services.supabase_dashboard import (
     DashboardConfigError,
     cerrar_caso_derivado,
@@ -315,16 +316,18 @@ st.set_page_config(
     layout="wide",
 )
 
-require_auth()
 apply_dashboard_styles()
+require_auth()
+render_sidebar()
 
 st.markdown(
     """
     <div class="cb-hero">
+      <div class="cb-eyebrow">Bandeja de atención</div>
       <div class="cb-hero-title">Atención Humana</div>
       <p class="cb-hero-subtitle">
         Bandeja tipo WhatsApp para revisar contactos derivados y responder en vivo
-        con Twilio desde este panel.
+        mediante el canal configurado desde este panel.
       </p>
     </div>
     """,
@@ -432,7 +435,7 @@ with left_col:
             case_id = str(case["id"])
             active = case_id == st.session_state["selected_handoff_case_id"]
             _render_contact_card(case, active)
-            if st.button("Abrir chat", key=f"open_{case_id}", use_container_width=True):
+            if st.button("Abrir chat", key=f"open_{case_id}", width="stretch"):
                 st.session_state["selected_handoff_case_id"] = case_id
                 st.rerun()
 
@@ -470,7 +473,7 @@ with chat_col:
 
         _live_chat_fragment()
     else:
-        if st.button("Actualizar conversación", use_container_width=True):
+        if st.button("Actualizar conversación", width="stretch"):
             st.rerun()
         _render_chat_messages(selected_case)
 
@@ -504,7 +507,7 @@ with detail_col:
     st.info(_safe_value(selected_case.get("handoff_summary"), "Sin resumen guardado."))
 
     st.markdown('<div class="cb-section-title">Gestión</div>', unsafe_allow_html=True)
-    if st.button("Cerrar caso", type="primary", use_container_width=True):
+    if st.button("Cerrar caso", type="primary", width="stretch"):
         try:
             cerrar_caso_derivado(selected_id)
         except Exception as exc:

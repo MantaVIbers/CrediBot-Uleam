@@ -77,6 +77,55 @@ def _admin_password() -> str:
     return _get_env_value("ADMIN_DASHBOARD_PASSWORD")
 
 
+def _simulator_backend_url() -> str:
+    """URL del backend para el simulador, con fallback local."""
+    return (
+        _get_env_value("BACKEND_API_URL")
+        or _get_env_value("APP_PUBLIC_URL")
+        or "http://localhost:8000"
+    ).rstrip("/")
+
+
+@st.cache_data(ttl=20, show_spinner=False)
+def obtener_estado_backend() -> dict[str, Any]:
+    """Comprueba si el backend del simulador está disponible."""
+    url = _simulator_backend_url()
+    try:
+        response = httpx.get(f"{url}/health", timeout=8.0, follow_redirects=True)
+        response.raise_for_status()
+        return {"online": True, "url": url, "detail": response.json()}
+    except Exception as exc:
+        return {"online": False, "url": url, "detail": str(exc)}
+
+
+def simular_mensaje(phone: str, message: str) -> str:
+    """Envía un turno al simulador FastAPI y retorna la respuesta de CrediBot."""
+    phone_value = phone.strip()
+    message_value = message.strip()
+    if not phone_value or not message_value:
+        raise DashboardConfigError("El teléfono y el mensaje son obligatorios.")
+
+    url = _simulator_backend_url()
+    try:
+        response = httpx.post(
+            f"{url}/simulate/message",
+            json={"phone": phone_value, "message": message_value},
+            timeout=45.0,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise DashboardConfigError(
+            f"El simulador respondió {exc.response.status_code}: {exc.response.text}"
+        ) from exc
+    except httpx.RequestError as exc:
+        raise DashboardConfigError(
+            f"No se pudo conectar con el backend en {url}: {exc}"
+        ) from exc
+
+    return str(response.json().get("reply") or "Sin respuesta del bot.")
+
+
 def _format_twilio_whatsapp_number(phone: str) -> str:
     """Formatea un número al formato requerido por Twilio WhatsApp."""
     cleaned = phone.replace("whatsapp:", "").replace("+", "").strip()
@@ -240,6 +289,19 @@ def obtener_casos_derivados() -> list[dict[str, Any]]:
         .select("*")
         .neq("status", "closed")
         .order("created_at", desc=True)
+        .execute()
+    )
+    return response.data or []
+
+
+def obtener_auditoria_ia() -> list[dict[str, Any]]:
+    """Obtiene las invocaciones auditadas de herramientas del agente."""
+    response = (
+        get_supabase_client()
+        .table("tool_audit_logs")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(500)
         .execute()
     )
     return response.data or []

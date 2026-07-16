@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 
 from components.auth import require_auth
+from components.navigation import render_sidebar
 from services.supabase_dashboard import (
     DashboardConfigError,
     obtener_casos_derivados,
@@ -17,12 +18,14 @@ st.set_page_config(
     layout="wide",
 )
 
-require_auth()
 apply_dashboard_styles()
+require_auth()
+render_sidebar()
 
 st.markdown(
     """
     <div class="cb-hero">
+      <div class="cb-eyebrow">Gestión crediticia</div>
       <div class="cb-hero-title">Solicitudes de Crédito</div>
       <p class="cb-hero-subtitle">
         Seguimiento de precalificaciones, resultados y derivaciones al asesor.
@@ -116,7 +119,7 @@ extra_columns = [column for column in filtered_df.columns if column not in visib
 display_df = filtered_df[visible_columns + extra_columns]
 
 st.markdown('<div class="cb-section-title">Listado</div>', unsafe_allow_html=True)
-st.dataframe(display_df, use_container_width=True, hide_index=True)
+st.dataframe(display_df, width="stretch", hide_index=True)
 
 # Botón para descargar CSV
 csv = display_df.to_csv(index=False).encode("utf-8")

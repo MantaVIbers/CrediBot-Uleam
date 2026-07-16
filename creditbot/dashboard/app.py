@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from components.auth import require_auth
+from components.navigation import render_sidebar
 from services.supabase_dashboard import (
     DashboardConfigError,
     obtener_casos_derivados,
@@ -20,12 +21,14 @@ st.set_page_config(
     layout="wide",
 )
 
-require_auth()
 apply_dashboard_styles()
+require_auth()
+render_sidebar()
 
 st.markdown(
     """
     <div class="cb-hero">
+      <div class="cb-eyebrow">Centro de operaciones</div>
       <div class="cb-hero-title">Panel Administrativo CrediBot</div>
       <p class="cb-hero-subtitle">
         Operación diaria de solicitudes, usuarios y casos derivados a atención humana.
@@ -34,6 +37,19 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+quick_left, quick_right = st.columns([1, 4])
+with quick_left:
+    st.page_link(
+        "pages/1_Simulador.py",
+        label="Probar conversación",
+        icon="💬",
+        width="stretch",
+    )
+with quick_right:
+    st.caption(
+        "Simula el flujo completo con el backend real sin consumir mensajes de WhatsApp."
+    )
 
 try:
     usuarios = obtener_usuarios()
@@ -117,7 +133,7 @@ with left:
             "status": "Estado",
         }
         display_df = display_df.rename(columns=rename_map)
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.dataframe(display_df, width="stretch", hide_index=True)
 
 with right:
     st.markdown('<div class="cb-section-title">Atención humana</div>', unsafe_allow_html=True)
@@ -152,4 +168,4 @@ summary = pd.DataFrame(
         {"Resultado": "no_cumple", "Total": no_cumplen},
     ]
 )
-st.bar_chart(summary, x="Resultado", y="Total", use_container_width=True)
+st.bar_chart(summary, x="Resultado", y="Total", width="stretch")
