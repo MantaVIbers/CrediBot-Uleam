@@ -135,6 +135,22 @@ def apply_dashboard_styles() -> None:
         .cb-sidebar-footer { color: #96bcb0; font-size: 10px; line-height: 1.5; border-top: 1px solid rgba(255,255,255,.1); padding: 16px 5px 10px; margin-top: 18px; }
         .cb-sidebar-live { display:inline-block; width:7px; height:7px; border-radius:50%; background:#35e087; box-shadow:0 0 0 4px rgba(53,224,135,.12); margin-right:7px; }
 
+        .cb-login-card { text-align:center; padding:8px 12px 24px; }
+        .cb-login-mark { width:58px; height:58px; border-radius:18px; display:grid; place-items:center; background:#e6f7ed; color:#087b50; font-size:28px; font-weight:900; box-shadow:0 9px 22px rgba(25,169,107,.13); margin:0 auto 20px; }
+        .cb-login-eyebrow { color:#15945d; letter-spacing:.14em; font-size:10px; font-weight:800; }
+        .cb-login-card h1 { color:var(--cb-text); font-size:30px; line-height:1.18; margin:11px 0 10px; font-weight:800; white-space:nowrap; }
+        .cb-login-card p { color:var(--cb-muted); line-height:1.6; max-width:370px; margin:0 auto; font-size:13px; }
+        div[data-testid="stForm"]:has(#admin_login_form) { border:1px solid #dcebe2; border-radius:20px; padding:25px; background:#fff; box-shadow:0 16px 38px rgba(20,70,47,.08); }
+        div[data-testid="stFormSubmitButton"] > button {
+            background: #109b63 !important;
+            border-color: #109b63 !important;
+            color: #ffffff !important;
+        }
+        div[data-testid="stFormSubmitButton"] > button:hover {
+            background: #087b50 !important;
+            border-color: #087b50 !important;
+        }
+
         .cb-hero {
             position: relative;
             overflow: hidden;
@@ -234,6 +250,7 @@ def apply_dashboard_styles() -> None:
             .cb-hero-title { font-size:25px; }
             .cb-hero::after { display:none; }
             .cb-chat-window { min-height:430px; }
+            .cb-login-card h1 { font-size:27px; }
         }
         </style>
         """,

@@ -2,11 +2,6 @@
 import streamlit as st
 
 
-def _logout() -> None:
-    st.session_state["dashboard_authenticated"] = False
-    st.rerun()
-
-
 def render_sidebar() -> None:
     """Dibuja la marca y el menú común de todas las pantallas."""
     with st.sidebar:
@@ -38,4 +33,6 @@ def render_sidebar() -> None:
             """,
             unsafe_allow_html=True,
         )
-        st.button("Cerrar sesión", on_click=_logout, width="stretch")
+        if st.button("Cerrar sesión", width="stretch"):
+            st.session_state["dashboard_authenticated"] = False
+            st.rerun()
