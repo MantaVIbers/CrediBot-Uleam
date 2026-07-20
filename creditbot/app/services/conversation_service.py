@@ -299,6 +299,22 @@ def _policy_response_for_state(text: str, state: str) -> tuple[str, list[rag_ser
     return message_service.policy_info_message(answer, _continuation_prompt(state)), chunks
 
 
+def restart_after_non_text(phone: str) -> str:
+    """Reinicia de forma explícita el menú después de un archivo adjunto."""
+    user = user_repository.get_or_create_user(phone)
+    user_id = str(user["id"])
+    active = conversation_repository.get_active_conversation(user_id)
+    if active:
+        conversation_repository.finish_conversation(str(active["id"]))
+    conversation = conversation_repository.get_or_create_active_conversation(user_id)
+    conversation_id = str(conversation["id"])
+    response = message_service.welcome_message()
+    conversation_repository.update_state(conversation_id, MENU)
+    conversation_repository.update_last_message(conversation_id, response)
+    message_repository.save_outbound_message(conversation_id, user_id, response)
+    return response
+
+
 def _build_ai_context(
     *,
     conversation_id: str,

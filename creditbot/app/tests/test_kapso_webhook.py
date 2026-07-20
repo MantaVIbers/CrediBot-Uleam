@@ -89,6 +89,11 @@ def test_webhook_kapso_responde_a_audio_sin_alterar_el_flujo(monkeypatch):
         "process_message",
         lambda *args, **kwargs: process_calls.append((args, kwargs)),
     )
+    monkeypatch.setattr(
+        routes_webhook,
+        "restart_after_non_text",
+        lambda phone: "Hola, soy CrediBot. ¿Qué deseas hacer?\n1. Precalificar crédito\n2. Información general\n3. Hablar con asesor",
+    )
     sent = []
     monkeypatch.setattr(routes_webhook, "send_text_message", lambda phone, message: sent.append((phone, message)))
     payload = {"message": {"id": "wamid.audio", "from": "593999000111", "type": "audio"}}
@@ -102,4 +107,7 @@ def test_webhook_kapso_responde_a_audio_sin_alterar_el_flujo(monkeypatch):
 
     assert response.status_code == 200
     assert process_calls == []
-    assert sent == [("593999000111", "Por favor, envíame tu mensaje como texto. Puedo entenderte mejor cuando escribes.")]
+    assert sent == [
+        ("593999000111", "Por favor, envíame tu mensaje como texto. Puedo entenderte mejor cuando escribes."),
+        ("593999000111", "Hola, soy CrediBot. ¿Qué deseas hacer?\n1. Precalificar crédito\n2. Información general\n3. Hablar con asesor"),
+    ]

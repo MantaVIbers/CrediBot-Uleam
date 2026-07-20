@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from app.core.config import settings
 from app.providers.whatsapp.kapso import extract_kapso_messages
-from app.services.conversation_service import process_message
+from app.services.conversation_service import process_message, restart_after_non_text
 from app.services.whatsapp_service import WhatsAppServiceError, send_text_message
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,11 @@ async def receive_whatsapp_webhook(request: Request):
 
     for incoming in extract_kapso_messages(payload):
         reply = incoming.get("reply")
-        if not reply:
+        if reply:
+            _send_reply(incoming["phone"], reply)
+            _send_reply(incoming["phone"], restart_after_non_text(incoming["phone"]))
+            continue
+        else:
             reply = process_message(
                 incoming["phone"],
                 incoming["message"],
