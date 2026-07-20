@@ -1,5 +1,6 @@
 """Bandeja de atención humana para casos derivados."""
 from html import escape
+import re
 from typing import Any
 
 import pandas as pd
@@ -83,6 +84,22 @@ def _message_html(item: dict[str, Any]) -> str:
       </div>
     </div>
     """
+
+
+def _visible_message_content(item: dict[str, Any]) -> str:
+    """Muestra contenido legible incluso si un registro antiguo guardó HTML."""
+    content = str(item.get("content") or "").strip()
+    if "cb-message-row" not in content:
+        return content
+
+    match = re.search(
+        r'<div>(.*?)</div>\s*<div class="cb-message-time">',
+        content,
+        flags=re.DOTALL,
+    )
+    if match:
+        return re.sub(r"<[^>]+>", "", match.group(1)).strip()
+    return re.sub(r"<[^>]+>", " ", content).replace("  ", " ").strip()
 
 
 def _case_context(selected_case: pd.Series) -> dict[str, str]:
@@ -174,18 +191,14 @@ def _render_chat_messages(selected_case: pd.Series) -> None:
         )
         return
 
-    messages_html = "\n".join(_message_html(item) for item in messages)
-    chat_html = f"""
-        <div class="cb-chat-window">
-          {messages_html}
-        </div>
-        """
-    # st.html renderiza las burbujas como HTML real; en algunas versiones de
-    # Streamlit, st.markdown mostraba el código fuente dentro de fragments.
-    if hasattr(st, "html"):
-        st.html(chat_html)
-    else:  # Compatibilidad para instalaciones antiguas del dashboard.
-        st.markdown(chat_html, unsafe_allow_html=True)
+    # Los componentes nativos evitan que Streamlit muestre etiquetas HTML como
+    # texto, incluso dentro de la actualización automática del panel.
+    for item in messages:
+        outbound = item.get("direction") == "outbound"
+        with st.chat_message("assistant" if outbound else "user"):
+            st.caption(_message_author(item))
+            st.write(_visible_message_content(item))
+            st.caption(_format_datetime(item.get("created_at")))
 
 
 def _render_reply_form(selected_case: pd.Series) -> None:
@@ -220,7 +233,15 @@ def _render_reply_form(selected_case: pd.Series) -> None:
                 content=reply,
             )
         except DashboardConfigError as exc:
-            st.warning(str(exc))
+            detail = str(exc)
+            if "Caso de derivación no encontrado" in detail:
+                st.warning(
+                    "El backend no encuentra este caso. El dashboard y el backend "
+                    "deben usar exactamente el mismo SUPABASE_URL y la misma "
+                    "SUPABASE_SERVICE_ROLE_KEY. Verifica esas variables en ambos servicios."
+                )
+            else:
+                st.warning(detail)
         except Exception as exc:
             detail = str(exc)
             if "outside the 24-hour window" in detail:
