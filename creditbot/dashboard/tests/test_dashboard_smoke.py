@@ -93,9 +93,10 @@ def test_all_dashboard_pages_render_with_demo_data(monkeypatch) -> None:
         "pages/1_Simulador.py",
         "pages/2_Solicitudes.py",
         "pages/3_Casos_Derivados.py",
-        "pages/4_Usuarios.py",
-        "pages/5_Auditoria_IA.py",
-    ]
+            "pages/4_Usuarios.py",
+            "pages/5_Auditoria_IA.py",
+            "pages/6_Conversaciones.py",
+        ]
     for relative_path in pages:
         app = AppTest.from_file(str(DASHBOARD_ROOT / relative_path), default_timeout=20)
         app.session_state["dashboard_authenticated"] = True

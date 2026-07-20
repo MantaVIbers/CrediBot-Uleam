@@ -257,6 +257,31 @@ def obtener_casos_derivados() -> list[dict[str, Any]]:
     return response.data or []
 
 
+def obtener_conversaciones(limit: int = 500) -> list[dict[str, Any]]:
+    """Obtiene conversaciones activas y finalizadas para seguimiento."""
+    response = (
+        get_supabase_client()
+        .table("conversations")
+        .select("*")
+        .order("updated_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return response.data or []
+
+
+def obtener_casos_de_conversaciones() -> list[dict[str, Any]]:
+    """Obtiene casos, incluidos los cerrados, para explicar una derivación."""
+    response = (
+        get_supabase_client()
+        .table("handoff_cases")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return response.data or []
+
+
 def obtener_auditoria_ia() -> list[dict[str, Any]]:
     """Obtiene las invocaciones auditadas de herramientas del agente."""
     response = (

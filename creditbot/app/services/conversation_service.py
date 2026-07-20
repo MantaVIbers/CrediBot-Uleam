@@ -21,7 +21,7 @@ from app.core.constants import (
     START,
     VERIFY_IDENTITY,
 )
-from app.agent import openai_agent
+from app.agent import credibot_agent, openai_agent, state_manager
 from app.domain import credit_rules
 from app.domain.cedula_validator import mask_cedula
 from app.repositories import (
@@ -224,6 +224,28 @@ def _handle_validation_failure(
             reason="repeated_invalid_input",
         )
     return None
+
+
+def _handle_invalid_input(
+    *,
+    conversation_id: str,
+    user_id: str,
+    state: str,
+    text: str,
+    invalid_response: str,
+) -> tuple[str | None, str]:
+    """Devuelve una respuesta de reintento o una derivación necesaria.
+
+    Una explicación en lenguaje natural no es un intento inválido: se conserva
+    el estado y se reinicia el contador, para no derivar prematuramente.
+    """
+    if state_manager.is_free_text_out_of_context(state, text):
+        _reset_validation_failures(conversation_id)
+        expected = state_manager.expected_input_for_state(state) or "el dato solicitado"
+        return None, message_service.contextual_retry_message(expected)
+
+    handoff_response = _handle_validation_failure(conversation_id, user_id, invalid_response)
+    return handoff_response, invalid_response
 
 
 def _verify_identity(cedula: str) -> dict[str, Any]:
@@ -450,12 +472,15 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     elif state == ASK_CEDULA:
         is_valid, reason = validation_service.validate_cedula(text)
         if not is_valid:
-            handoff_response = _handle_validation_failure(
-                conversation_id, user_id, message_service.invalid_cedula_message(reason)
+            handoff_response, response = _handle_invalid_input(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                state=ASK_CEDULA,
+                text=text,
+                invalid_response=message_service.invalid_cedula_message(reason),
             )
             if handoff_response:
                 return handoff_response
-            response = message_service.invalid_cedula_message(reason)
             next_state = ASK_CEDULA
         else:
             _reset_validation_failures(conversation_id)
@@ -501,12 +526,15 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     elif state == ASK_PURPOSE:
         is_valid, _ = validation_service.validate_purpose(text)
         if not is_valid:
-            handoff_response = _handle_validation_failure(
-                conversation_id, user_id, message_service.invalid_purpose_message()
+            handoff_response, response = _handle_invalid_input(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                state=ASK_PURPOSE,
+                text=text,
+                invalid_response=message_service.invalid_purpose_message(),
             )
             if handoff_response:
                 return handoff_response
-            response = message_service.invalid_purpose_message()
             next_state = ASK_PURPOSE
         else:
             _reset_validation_failures(conversation_id)
@@ -519,12 +547,15 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     elif state == ASK_AMOUNT:
         is_valid, _ = validation_service.validate_amount(text)
         if not is_valid:
-            handoff_response = _handle_validation_failure(
-                conversation_id, user_id, message_service.invalid_amount_message()
+            handoff_response, response = _handle_invalid_input(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                state=ASK_AMOUNT,
+                text=text,
+                invalid_response=message_service.invalid_amount_message(),
             )
             if handoff_response:
                 return handoff_response
-            response = message_service.invalid_amount_message()
             next_state = ASK_AMOUNT
         else:
             _reset_validation_failures(conversation_id)
@@ -537,12 +568,15 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     elif state == ASK_TERM:
         is_valid, _ = validation_service.validate_term(text)
         if not is_valid:
-            handoff_response = _handle_validation_failure(
-                conversation_id, user_id, message_service.invalid_term_message()
+            handoff_response, response = _handle_invalid_input(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                state=ASK_TERM,
+                text=text,
+                invalid_response=message_service.invalid_term_message(),
             )
             if handoff_response:
                 return handoff_response
-            response = message_service.invalid_term_message()
             next_state = ASK_TERM
         else:
             _reset_validation_failures(conversation_id)
@@ -555,12 +589,15 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     elif state == ASK_INCOME:
         is_valid, _ = validation_service.validate_income(text)
         if not is_valid:
-            handoff_response = _handle_validation_failure(
-                conversation_id, user_id, message_service.invalid_income_message()
+            handoff_response, response = _handle_invalid_input(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                state=ASK_INCOME,
+                text=text,
+                invalid_response=message_service.invalid_income_message(),
             )
             if handoff_response:
                 return handoff_response
-            response = message_service.invalid_income_message()
             next_state = ASK_INCOME
         else:
             _reset_validation_failures(conversation_id)
@@ -657,17 +694,28 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     if next_state not in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE}:
         response = message_service.with_handoff_hint(response)
 
-    response = openai_agent.render_reply(
-        base_reply=response,
-        state=next_state,
-        user_message=text,
-        context=_build_ai_context(
+    if state_manager.is_free_text_out_of_context(next_state, text) and response.startswith(
+        "Entiendo lo que nos comentas."
+    ):
+        response = credibot_agent.render_free_text_retry(
+            base_reply=response,
+            state=next_state,
+            user_message=text,
             conversation_id=conversation_id,
-            state_before=state,
-            state_after=next_state,
-            rag_chunks=rag_chunks,
-        ),
-    )
+            user_id=user_id,
+        )
+    else:
+        response = openai_agent.render_reply(
+            base_reply=response,
+            state=next_state,
+            user_message=text,
+            context=_build_ai_context(
+                conversation_id=conversation_id,
+                state_before=state,
+                state_after=next_state,
+                rag_chunks=rag_chunks,
+            ),
+        )
     conversation_repository.update_last_message(conversation_id, response)
     message_repository.save_outbound_message(conversation_id, user_id, response)
     return response

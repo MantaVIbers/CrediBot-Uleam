@@ -155,6 +155,11 @@ def invalid_income_message() -> str:
     return "El ingreso debe ser un número mayor a 0. Inténtalo de nuevo."
 
 
+def contextual_retry_message(expected_input: str) -> str:
+    """Retoma texto libre sin tratarlo como un fallo de validación."""
+    return f"Entiendo lo que nos comentas. Para continuar, indícame {expected_input}."
+
+
 def invalid_menu_message() -> str:
     """Mensaje de error para opción de menú inválida."""
     return "Selecciona una opción válida: 1, 2 o 3."

@@ -330,6 +330,41 @@ def test_destino_hola_se_rechaza(
     mock_update_state.assert_not_called()
 
 
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kw: kw["base_reply"])
+@patch("app.services.conversation_service.credibot_agent.render_free_text_retry", side_effect=lambda **kw: kw["base_reply"])
+@patch("app.services.conversation_service.handoff_service.register_handoff")
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_texto_libre_en_monto_repite_el_dato_sin_derivar(
+    mock_user,
+    mock_conversation,
+    mock_update_state,
+    _mock_last_message,
+    _mock_inbound,
+    _mock_outbound,
+    mock_handoff,
+    _mock_agent_retry,
+    _mock_openai,
+):
+    """Una explicación de negocio no debe contarse como monto inválido."""
+    mock_user.return_value = _base_user()
+    mock_conversation.return_value = _base_conversation(ASK_AMOUNT)
+
+    reply = process_message(
+        "593999999999",
+        "Necesito un préstamo para mi negocio que tiene problemas económicas",
+    )
+
+    assert "monto" in reply.lower()
+    assert "dólares" in reply.lower()
+    mock_handoff.assert_not_called()
+    mock_update_state.assert_not_called()
+
+
 @patch(
     "app.services.conversation_service.openai_agent.render_reply",
     side_effect=lambda **kwargs: kwargs["base_reply"],

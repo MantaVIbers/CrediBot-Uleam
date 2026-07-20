@@ -41,6 +41,7 @@ def render_sidebar(counts: dict[str, int] | None = None) -> None:
         st.page_link("pages/3_Casos_Derivados.py", label=cases_label, icon="🎧")
         st.page_link("pages/4_Usuarios.py", label="Usuarios", icon="👥")
         st.page_link("pages/5_Auditoria_IA.py", label="Auditoría IA", icon="🛡️")
+        st.page_link("pages/6_Conversaciones.py", label="Conversaciones", icon="💬")
         st.markdown(
             """
             <div class="cb-sidebar-footer">
