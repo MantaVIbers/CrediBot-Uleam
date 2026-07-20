@@ -317,7 +317,7 @@ def _continuation_prompt(state: str) -> str | None:
         VERIFY_IDENTITY: "espera la verificación o escribe 'asesor'.",
         ASK_PURPOSE: "indica el destino del crédito, por ejemplo estudios o negocio.",
         ASK_AMOUNT: "indica el monto que deseas solicitar.",
-        ASK_TERM: "indica el plazo en meses, entre 3 y 36.",
+        ASK_TERM: "indica el plazo entre 3 y 36 meses; también puedes escribirlo en años.",
         ASK_INCOME: "indica tu ingreso mensual aproximado.",
         CONFIRM_DATA: "responde 1 para confirmar o 2 para corregir.",
     }

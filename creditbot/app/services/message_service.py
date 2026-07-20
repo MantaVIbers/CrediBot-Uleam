@@ -137,7 +137,10 @@ def invalid_purpose_message() -> str:
 
 def ask_term_message() -> str:
     """Solicita el plazo en meses."""
-    return "¿En cuántos meses deseas pagar el crédito?"
+    return (
+        "¿En cuántos meses deseas pagar el crédito? "
+        "Puedes escribir, por ejemplo, '24 meses' o '2 años' (hasta 36 meses)."
+    )
 
 
 def ask_income_message() -> str:
@@ -157,7 +160,7 @@ def invalid_amount_message() -> str:
 
 def invalid_term_message() -> str:
     """Mensaje de error para plazo inválido."""
-    return "El plazo debe ser un número entre 3 y 36 meses. Inténtalo de nuevo."
+    return "El plazo debe estar entre 3 y 36 meses (hasta 3 años). Inténtalo de nuevo."
 
 
 def invalid_income_message() -> str:

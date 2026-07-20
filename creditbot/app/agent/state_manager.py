@@ -6,7 +6,7 @@ EXPECTED_INPUTS = {
     ASK_CEDULA: "tu número de cédula de 10 dígitos",
     ASK_PURPOSE: "el destino del crédito, por ejemplo estudios o negocio",
     ASK_AMOUNT: "el monto que deseas solicitar en dólares",
-    ASK_TERM: "el plazo que deseas en meses, entre 3 y 36",
+    ASK_TERM: "el plazo que deseas, en meses o años (entre 3 y 36 meses)",
     ASK_INCOME: "tu ingreso mensual aproximado en dólares",
 }
 

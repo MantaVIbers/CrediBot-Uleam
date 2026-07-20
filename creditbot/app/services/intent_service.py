@@ -91,10 +91,10 @@ def looks_like_numeric_answer(value: str) -> bool:
             return True
         except ValueError:
             return False
-    # "12", "12 meses", "en 12 plazos", "$1.200", "1500 dolares"
+    # "12", "12 meses", "2 años", "en 12 plazos", "$1.200", "1500 dolares"
     return bool(
         re.search(
-            r"(?:^|[\s$])\d[\d.,]*\s*(?:meses|mes|plazos|plazo|dolares|usd|\$)?\b",
+            r"(?:^|[\s$])\d[\d.,]*\s*(?:meses|mes|plazos|plazo|anos|ano|dolares|usd|\$)?\b",
             text,
         )
     )

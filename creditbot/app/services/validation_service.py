@@ -26,7 +26,10 @@ def parse_spanish_number(value: str) -> int:
     text = unicodedata.normalize("NFKD", value or "")
     text = "".join(char for char in text if not unicodedata.combining(char)).lower()
     tokens = re.findall(r"[a-z]+", text)
-    allowed_context = {"y", "mil", "dolar", "dolares", "usd", "mes", "meses", "plazo", "plazos", "opcion", "numero"}
+    allowed_context = {
+        "y", "mil", "dolar", "dolares", "usd", "mes", "meses", "plazo", "plazos",
+        "ano", "anos", "opcion", "numero",
+    }
     if not tokens or any(token not in _NUMBER_WORDS and token not in allowed_context for token in tokens):
         raise ValueError("No se encontró un número escrito.")
     total = current = 0
@@ -74,17 +77,18 @@ def parse_numeric_value(value: str) -> float:
 
 
 def parse_term_value(value: str) -> int:
-    """Extrae el plazo en meses desde texto como '12', '12 meses' o 'en 12 plazos'."""
+    """Extrae el plazo en meses, convirtiendo expresiones en años a meses."""
     cleaned = value.strip()
     try:
         return int(cleaned)
     except ValueError:
         pass
-    match = re.search(r"(\d{1,2})", cleaned)
-    if not match:
-        return parse_spanish_number(value)
-        raise ValueError("No se encontró un plazo numérico.")
-    return int(match.group(1))
+    normalized = unicodedata.normalize("NFKD", cleaned)
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char)).lower()
+    is_year_term = bool(re.search(r"\bano(?:s)?\b", normalized))
+    match = re.search(r"\b(\d{1,3})\b", normalized)
+    term = int(match.group(1)) if match else parse_spanish_number(normalized)
+    return term * 12 if is_year_term else term
 
 
 def validate_name(value: str) -> tuple[bool, str | None]:
@@ -189,14 +193,14 @@ def validate_purpose(value: str) -> tuple[bool, str | None]:
 
 
 def validate_term(value: str) -> tuple[bool, str | None]:
-    """Valida que el plazo sea un entero entre 3 y 36 meses."""
+    """Valida un plazo de 3 a 36 meses, incluso si se expresa en años."""
     try:
         term = parse_term_value(value)
     except ValueError:
         return False, "El plazo debe ser un número entero."
 
     if term < 3 or term > 36:
-        return False, "El plazo debe estar entre 3 y 36 meses."
+        return False, "El plazo debe estar entre 3 y 36 meses (hasta 3 años)."
 
     return True, None
 

@@ -41,6 +41,8 @@ def test_validate_term_natural_language():
 
     assert parse_term_value("12 meses") == 12
     assert parse_term_value("en 12 plazos") == 12
+    assert parse_term_value("5 años") == 60
+    assert parse_term_value("diez años") == 120
     is_valid, error = validate_term("en 12 plazos")
     assert is_valid is True
     assert error is None
@@ -80,6 +82,13 @@ def test_validate_purpose_correct():
     is_valid, error = validate_purpose("Para comprar un yate")
     assert is_valid is True
     assert error is None
+
+
+def test_validate_term_years_respects_month_limit():
+    is_valid, error = validate_term("5 años")
+
+    assert is_valid is False
+    assert "36 meses" in str(error)
 
 
 def test_validate_purpose_invalid():
