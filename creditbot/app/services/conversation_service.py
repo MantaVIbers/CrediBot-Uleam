@@ -563,11 +563,12 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             next_state = ASK_PURPOSE
         else:
             _reset_validation_failures(conversation_id)
+            purpose = intent_service.normalize_loan_purpose(text)
             request = credit_repository.get_draft_request(conversation_id)
             if request:
-                credit_repository.update_purpose(request["id"], text.strip())
+                credit_repository.update_purpose(request["id"], purpose)
             response = message_service.purpose_acknowledged_message(
-                text.strip(), user.get("full_name")
+                purpose, user.get("full_name")
             )
             next_state = ASK_AMOUNT
 
@@ -721,11 +722,10 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     if next_state not in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE}:
         response = message_service.with_handoff_hint(response)
 
-    # Los datos que hacen avanzar la solicitud (destino, monto, plazo, etc.)
-    # se responden con el texto personalizado ya validado. Ninguna llamada de
-    # red puede bloquear el webhook antes de que WhatsApp reciba esa respuesta.
-    # La IA se usa para dudas y reintentos que conservan el mismo estado.
-    if next_state == state:
+    # OpenAI suaviza la respuesta al reconocer el destino; la respuesta base
+    # garantiza el mismo tono y el siguiente paso si el servicio no responde.
+    should_personalize_purpose = state == ASK_PURPOSE and next_state == ASK_AMOUNT
+    if next_state == state or should_personalize_purpose:
         response = openai_agent.render_reply(
             base_reply=response,
             state=next_state,

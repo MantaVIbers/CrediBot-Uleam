@@ -355,14 +355,14 @@ def test_destino_libre_avanza_sin_agente_secundario(
     mock_conversation.return_value = _base_conversation(ASK_PURPOSE)
     mock_get_draft.return_value = _draft_request()
 
-    reply = process_message("593999999999", "Comprar un yate")
+    reply = process_message("593999999999", "Quiero comprar un yate")
 
     assert "monto" in reply.lower()
     assert "ana lucía" in reply.lower()
     assert "comprar un yate" in reply.lower()
-    mock_update_purpose.assert_called_once_with(REQUEST_ID, "Comprar un yate")
+    mock_update_purpose.assert_called_once_with(REQUEST_ID, "comprar un yate")
     mock_update_state.assert_called_once_with(CONVERSATION_ID, ASK_AMOUNT)
-    _mock_openai.assert_not_called()
+    _mock_openai.assert_called_once()
 
 
 @patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kw: kw["base_reply"])

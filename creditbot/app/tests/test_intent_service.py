@@ -10,6 +10,11 @@ def test_menu_detecta_credito_en_lenguaje_natural():
     assert intent_service.loan_purpose_from_text("quiero un crédito para comprar un yate") == "comprar un yate"
 
 
+def test_normaliza_motivo_para_respuesta_natural():
+    assert intent_service.normalize_loan_purpose("Quiero comprar un Ferrari") == "comprar un Ferrari"
+    assert intent_service.normalize_loan_purpose("Para una casa") == "una casa"
+
+
 def test_menu_detecta_info_y_asesor():
     assert intent_service.menu_option_from_text("quiero información de requisitos") == "2"
     assert intent_service.menu_option_from_text("hablar con una persona") == "3"

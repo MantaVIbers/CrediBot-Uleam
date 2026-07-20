@@ -45,8 +45,21 @@ def loan_purpose_from_text(value: str) -> str | None:
     match = re.search(r"\b(?:credito|crédito|prestamo|préstamo)\b.*?\bpara\s+(.+)", raw, re.IGNORECASE)
     if not match:
         return None
-    purpose = match.group(1).strip(" .,!?")
+    purpose = normalize_loan_purpose(match.group(1))
     return purpose if len(purpose) >= 3 else None
+
+
+def normalize_loan_purpose(value: str) -> str:
+    """Quita introducciones conversacionales del motivo sin cambiar su sentido."""
+    purpose = " ".join((value or "").strip().split()).strip(" .,!?")
+    purpose = re.sub(
+        r"^(?:yo\s+)?(?:quiero|quisiera|necesito|deseo|busco|me\s+gustar[ií]a)\s+",
+        "",
+        purpose,
+        flags=re.IGNORECASE,
+    )
+    purpose = re.sub(r"^para\s+", "", purpose, flags=re.IGNORECASE)
+    return purpose or " ".join((value or "").strip().split()).strip(" .,!?")
 
 
 def confirmation_from_text(value: str) -> str | None:
