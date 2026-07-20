@@ -10,6 +10,9 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+_last_request_status = "not_attempted"
+_last_error_type: str | None = None
+
 
 SYSTEM_PROMPT = """
 Eres CrediBot, asistente de precalificacion de credito por WhatsApp.
@@ -26,12 +29,22 @@ Reglas obligatorias:
 - Si el estado anterior es ASK_PURPOSE y el objetivo es ASK_AMOUNT, responde de
   forma cálida y natural: menciona el nombre y el propósito expresado, sin
   prometer una aprobación, y termina preguntando el monto de forma cercana.
+- No copies literalmente la respuesta base: reescríbela como un mensaje breve,
+  humano y empático, manteniendo exactamente los datos y la pregunta final.
 """.strip()
 
 
 def _is_configured() -> bool:
     """Indica si la IA puede usarse en este entorno."""
     return bool(settings.openai_enable_ai and settings.openai_api_key)
+
+
+def runtime_status() -> dict[str, str | None]:
+    """Expone diagnóstico mínimo de IA sin revelar claves ni mensajes privados."""
+    return {
+        "last_request_status": _last_request_status,
+        "last_error_type": _last_error_type,
+    }
 
 
 def _format_context(context: dict[str, Any] | None) -> str:
@@ -80,7 +93,13 @@ def render_reply(
     La respuesta base es siempre la fuente de verdad. Si OpenAI no esta
     configurado o falla, el flujo sigue funcionando con el texto determinista.
     """
-    if not base_reply or not _is_configured():
+    global _last_request_status, _last_error_type
+
+    if not base_reply:
+        return base_reply
+    if not _is_configured():
+        _last_request_status = "not_configured"
+        _last_error_type = None
         return base_reply
 
     try:
@@ -105,7 +124,15 @@ def render_reply(
             max_output_tokens=220,
         )
         rendered = (getattr(response, "output_text", "") or "").strip()
-        return rendered or base_reply
+        if rendered:
+            _last_request_status = "success"
+            _last_error_type = None
+            return rendered
+        _last_request_status = "empty_response"
+        _last_error_type = None
+        return base_reply
     except Exception as exc:  # pragma: no cover - defensa para no tumbar WhatsApp
         logger.warning("No se pudo generar respuesta con OpenAI: %s", exc)
+        _last_request_status = "failed"
+        _last_error_type = type(exc).__name__
         return base_reply

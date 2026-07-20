@@ -15,6 +15,7 @@ def test_render_reply_devuelve_base_sin_api_key(monkeypatch):
     )
 
     assert reply == "Selecciona una opcion: 1. Si 2. No"
+    assert openai_agent.runtime_status()["last_request_status"] == "not_configured"
 
 
 def test_render_reply_respeta_flag_desactivado(monkeypatch):
@@ -71,6 +72,8 @@ def test_render_reply_invoca_openai_si_esta_configurado(monkeypatch):
     )
 
     assert reply == "Respuesta redactada por IA"
+    assert openai_agent.runtime_status()["last_request_status"] == "success"
+    assert openai_agent.runtime_status()["last_error_type"] is None
     assert llamadas[0]["model"] == "gpt-test"
     assert "Texto base con opcion 1" in llamadas[0]["input"]
     assert "Estado anterior: ASK_AMOUNT" in llamadas[0]["input"]

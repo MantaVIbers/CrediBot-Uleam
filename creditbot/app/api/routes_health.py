@@ -1,6 +1,7 @@
 """Rutas de health check para monitoreo."""
 from fastapi import APIRouter
 
+from app.agent.openai_agent import runtime_status
 from app.core.config import settings
 
 router = APIRouter(tags=["health"])
@@ -19,6 +20,7 @@ def ai_health_check():
         "enabled": settings.openai_enable_ai,
         "configured": bool(settings.openai_api_key),
         "model": settings.openai_model,
+        **runtime_status(),
     }
 
 

@@ -29,12 +29,14 @@ def test_ai_health_no_expone_api_key(monkeypatch):
 
     assert response.status_code == 200
     body = response.json()
-    assert body == {
-        "status": "ok",
-        "enabled": True,
-        "configured": True,
-        "model": "gpt-test",
+    assert body["status"] == "ok"
+    assert body["enabled"] is True
+    assert body["configured"] is True
+    assert body["model"] == "gpt-test"
+    assert body["last_request_status"] in {
+        "not_attempted", "not_configured", "success", "empty_response", "failed"
     }
+    assert "last_error_type" in body
     assert "sk-test" not in response.text
 
 
