@@ -23,9 +23,6 @@ Reglas obligatorias:
 - Mantén la respuesta corta, apta para WhatsApp.
 - Si hay opciones numeradas, conserva exactamente su significado.
 - Si el texto base deriva a asesor, no ofrezcas continuar automaticamente.
-- Cuando el estado anterior sea ASK_PURPOSE y el objetivo ASK_AMOUNT, menciona
-  de forma natural el nombre del cliente y el destino que escribió. Reconoce
-  ese destino sin prometer aprobación y termina preguntando el monto.
 """.strip()
 
 
